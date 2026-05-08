@@ -28,7 +28,9 @@ F103C8T6-LCD/
 │   ├── DHT11/                   #   DHT11 温湿度传感器驱动
 │   ├── HCSR04/                  #   HC-SR04 超声波测距驱动
 │   ├── Joystick/                #   模拟摇杆驱动 (双轴ADC + 按键)
-│   └── Encoder/                 #   旋转编码器驱动 (正交解码 + 按键)
+│   ├── Encoder/                 #   旋转编码器驱动 (正交解码 + 按键)
+│   ├── SG90/                    #   SG90 舵机驱动 (PWM + 平滑转动)
+│   └── DAC1220/                 #   DAC1220 20位DAC驱动 (3线SDIO + 自校准)
 ├── Drivers/                     # STM32 HAL 库 (CubeMX 生成)
 ├── MDK-ARM/                     # Keil 工程文件
 └── F103C8T6-LCD.ioc             # CubeMX 配置文件
@@ -43,6 +45,8 @@ F103C8T6-LCD/
 | [HC-SR04](Hardware/HCSR04/README.md) | 3 个 | EMA 滤波, 16位溢出补偿, 超时保护 | [README](Hardware/HCSR04/README.md) |
 | [Joystick](Hardware/Joystick/joystick.h) | 3 个 | 双轴ADC + 按键, 方向判别 + 死区 | — |
 | [Encoder](Hardware/Encoder/encoder.h) | 4 个 | 正交解码, 按键消抖, 长短按识别 | — |
+| [SG90](Hardware/SG90/sg90.h) | 1~2 个 | PWM 角度控制, 平滑转动, 范围检查 | — |
+| [DAC1220](Hardware/DAC1220/dac1220.h) | 5 个 | 3线SDIO 20位DAC, 寄存器读写, 自校准 | — |
 
 ## 驱动设计特点
 

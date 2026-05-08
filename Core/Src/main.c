@@ -26,7 +26,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
-#include "hcsr04.h"
+/* #include "hcsr04.h" */
+#include "sg90.h"
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -37,10 +38,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define HCSR04_TRIG_PORT   GPIOA
-#define HCSR04_TRIG_PIN    GPIO_PIN_7
-#define HCSR04_ECHO_PORT   GPIOA
-#define HCSR04_ECHO_PIN    GPIO_PIN_6
+/* #define HCSR04_TRIG_PORT   GPIOA */
+/* #define HCSR04_TRIG_PIN    GPIO_PIN_7 */
+/* #define HCSR04_ECHO_PORT   GPIOA */
+/* #define HCSR04_ECHO_PIN    GPIO_PIN_6 */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,9 +52,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static uint32_t hcsr04_dist_mm;
-static uint16_t hcsr04_last_cnt;
-static uint32_t hcsr04_overflow_cnt;
+/* static uint32_t hcsr04_dist_mm; */
+/* static uint16_t hcsr04_last_cnt; */
+/* static uint32_t hcsr04_overflow_cnt; */
+static uint16_t servo_target = 0;
+static uint8_t servo_dir = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,32 +86,42 @@ static OLED_IO_t oled_io = {
     .write_data = OLED_WriteData,
 };
 
-static void HCSR04_Trig(void)
+/* static void HCSR04_Trig(void) */
+/* { */
+/*     HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_SET); */
+/*     uint32_t _t = TIM3->CNT; */
+/*     while ((TIM3->CNT - _t) < 15); */
+/*     HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_RESET); */
+/* } */
+
+/* static uint8_t HCSR04_ReadEcho(void) */
+/* { */
+/*     return (HAL_GPIO_ReadPin(HCSR04_ECHO_PORT, HCSR04_ECHO_PIN) == GPIO_PIN_SET) ? 1 : 0; */
+/* } */
+
+/* static uint32_t HCSR04_GetUs(void) */
+/* { */
+/*     uint16_t cnt = TIM3->CNT; */
+/*     if (cnt < hcsr04_last_cnt) */
+/*         hcsr04_overflow_cnt++; */
+/*     hcsr04_last_cnt = cnt; */
+/*     return (hcsr04_overflow_cnt << 16) | cnt; */
+/* } */
+
+/* static HCSR04_IO_t hcsr04_io = { */
+/*     .trig = HCSR04_Trig, */
+/*     .read_echo = HCSR04_ReadEcho, */
+/*     .get_us = HCSR04_GetUs, */
+/* }; */
+
+static void SG90_SetPulse(uint16_t us)
 {
-    HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_SET);
-    uint32_t _t = TIM3->CNT;
-    while ((TIM3->CNT - _t) < 15);
-    HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, us);
 }
 
-static uint8_t HCSR04_ReadEcho(void)
-{
-    return (HAL_GPIO_ReadPin(HCSR04_ECHO_PORT, HCSR04_ECHO_PIN) == GPIO_PIN_SET) ? 1 : 0;
-}
-
-static uint32_t HCSR04_GetUs(void)
-{
-    uint16_t cnt = TIM3->CNT;
-    if (cnt < hcsr04_last_cnt)
-        hcsr04_overflow_cnt++;
-    hcsr04_last_cnt = cnt;
-    return (hcsr04_overflow_cnt << 16) | cnt;
-}
-
-static HCSR04_IO_t hcsr04_io = {
-    .trig = HCSR04_Trig,
-    .read_echo = HCSR04_ReadEcho,
-    .get_us = HCSR04_GetUs,
+static SG90_IO_t sg90_io = {
+    .set_pulse = SG90_SetPulse,
+    .get_ms    = HAL_GetTick,
 };
 /* USER CODE END 0 */
 
@@ -144,73 +157,59 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_TIM3_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
 
   OLED_Init(&oled_io);
 
-  HCSR04_Init(&hcsr04_io);
+/*   HCSR04_Init(&hcsr04_io); */
 
-  OLED_ShowString(16, 0, "Ultrasonic", 2);
-  OLED_ShowString(0, 24, "C:----- P:--- E:-", 1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  SG90_Init(&sg90_io);
+
+  OLED_ShowString(24, 0, "Servo Demo", 2);
+  OLED_ShowString(0, 24, "Servo: --- deg", 1);
   OLED_Display();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last_hcsr04 = 0;
   while (1)
   {
     uint32_t now = HAL_GetTick();
+    static uint32_t last_display = 0;
 
-    if (now - last_hcsr04 >= 200)
+    /* SG90 来回扫描 0°~180° */
+    static uint32_t last_servo = 0;
+    if (now - last_servo >= 20)
     {
-        last_hcsr04 = now;
-        char buf[30];
-
-        int8_t hc_ret = HCSR04_Read(&hcsr04_dist_mm);
-
-        uint32_t cnt = TIM3->CNT;
-        buf[0] = 'C'; buf[1] = ':';
-        buf[2] = '0' + (cnt / 10000) % 10;
-        buf[3] = '0' + (cnt / 1000) % 10;
-        buf[4] = '0' + (cnt / 100) % 10;
-        buf[5] = '0' + (cnt / 10) % 10;
-        buf[6] = '0' + cnt % 10;
-        buf[7] = ' ';
-
-        if (hc_ret == HCSR04_OK)
+        last_servo = now;
+        SG90_SetAngle(servo_target);
+        if (servo_dir)
         {
-            uint32_t m = hcsr04_dist_mm;
-            uint32_t cm = m / 10;
-            uint32_t mm = m % 10;
-            buf[8] = 'D'; buf[9] = ':';
-
-            if (cm >= 100) { buf[10] = '0' + cm / 100; cm %= 100; }
-            else           { buf[10] = ' '; }
-            if (cm >= 10 || buf[10] != ' ') { buf[11] = '0' + cm / 10; cm %= 10; }
-            else                           { buf[11] = ' '; }
-            buf[12] = '0' + cm;
-            buf[13] = '.';
-            buf[14] = '0' + mm;
-            buf[15] = 'c'; buf[16] = 'm'; buf[17] = '\0';
-            OLED_ShowString(0, 24, buf, 1);
+            if (servo_target >= 180) servo_dir = 0;
+            else servo_target++;
         }
         else
         {
-            uint8_t p = 8;
-            buf[p++] = 'P'; buf[p++] = ':';
-            uint32_t pv = HCSR04_GetPulseUs();
-            buf[p++] = '0' + (pv / 100) % 10;
-            buf[p++] = '0' + (pv / 10) % 10;
-            buf[p++] = '0' + pv % 10;
-            buf[p++] = ' ';
-            buf[p++] = 'E'; buf[p++] = ':';
-            buf[p++] = (uint8_t)(-hc_ret) + '0';
-            buf[p++] = '\0';
-            OLED_ShowString(0, 24, buf, 1);
+            if (servo_target <= 0) servo_dir = 1;
+            else servo_target--;
         }
+    }
 
+    if (now - last_display >= 200)
+    {
+        last_display = now;
+        char buf[18];
+        uint8_t p = 0;
+        buf[p++] = 'S'; buf[p++] = ':';
+        buf[p++] = '0' + (servo_target / 100) % 10;
+        buf[p++] = '0' + (servo_target / 10) % 10;
+        buf[p++] = '0' + servo_target % 10;
+        buf[p++] = ' '; buf[p++] = 'd'; buf[p++] = 'e'; buf[p++] = 'g';
+        buf[p++] = '\0';
+        OLED_ShowString(0, 24, buf, 1);
         OLED_Display();
     }
     /* USER CODE END WHILE */
