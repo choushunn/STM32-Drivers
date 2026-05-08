@@ -57,11 +57,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define TRIG_Pin GPIO_PIN_7
+#define TRIG_GPIO_Port GPIOA
 #define DHT11_DATA_Pin GPIO_PIN_12
 #define DHT11_DATA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define ECHO_Pin GPIO_PIN_6
+#define ECHO_GPIO_Port GPIOA
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

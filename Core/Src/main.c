@@ -19,13 +19,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "i2c.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
-#include "dht11.h"
+#include "hcsr04.h"
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -36,9 +37,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DHT11_PIN       12
-#define DHT11_PORT      GPIOB
-#define DHT11_CRH_SHIFT ((DHT11_PIN - 8) * 4)
+#define HCSR04_TRIG_PORT   GPIOA
+#define HCSR04_TRIG_PIN    GPIO_PIN_7
+#define HCSR04_ECHO_PORT   GPIOA
+#define HCSR04_ECHO_PIN    GPIO_PIN_6
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,7 +51,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static DHT11_Data_t dht11_data;
+static uint32_t hcsr04_dist_mm;
+static uint16_t hcsr04_last_cnt;
+static uint32_t hcsr04_overflow_cnt;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -79,53 +83,32 @@ static OLED_IO_t oled_io = {
     .write_data = OLED_WriteData,
 };
 
-static void DHT11_SetOutput(void)
+static void HCSR04_Trig(void)
 {
-    DHT11_PORT->CRH &= ~(0xF << DHT11_CRH_SHIFT);
-    DHT11_PORT->CRH |= (0x7 << DHT11_CRH_SHIFT);
+    HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_SET);
+    uint32_t _t = TIM3->CNT;
+    while ((TIM3->CNT - _t) < 15);
+    HAL_GPIO_WritePin(HCSR04_TRIG_PORT, HCSR04_TRIG_PIN, GPIO_PIN_RESET);
 }
 
-static void DHT11_SetInput(void)
+static uint8_t HCSR04_ReadEcho(void)
 {
-    DHT11_PORT->CRH &= ~(0xF << DHT11_CRH_SHIFT);
-    DHT11_PORT->CRH |= (0x8 << DHT11_CRH_SHIFT);
-    DHT11_PORT->ODR |= (1U << DHT11_PIN);
+    return (HAL_GPIO_ReadPin(HCSR04_ECHO_PORT, HCSR04_ECHO_PIN) == GPIO_PIN_SET) ? 1 : 0;
 }
 
-static void DHT11_WriteLow(void)
+static uint32_t HCSR04_GetUs(void)
 {
-    DHT11_PORT->BSRR = (1U << (DHT11_PIN + 16));
+    uint16_t cnt = TIM3->CNT;
+    if (cnt < hcsr04_last_cnt)
+        hcsr04_overflow_cnt++;
+    hcsr04_last_cnt = cnt;
+    return (hcsr04_overflow_cnt << 16) | cnt;
 }
 
-static void DHT11_WriteHigh(void)
-{
-    DHT11_PORT->BSRR = (1U << DHT11_PIN);
-}
-
-static uint8_t DHT11_ReadPin(void)
-{
-    return (DHT11_PORT->IDR >> DHT11_PIN) & 1;
-}
-
-static void DHT11_DelayUs(uint32_t us)
-{
-    uint32_t start = DWT->CYCCNT;
-    while ((DWT->CYCCNT - start) < us * 72);
-}
-
-static void DHT11_DelayMs(uint32_t ms)
-{
-    HAL_Delay(ms);
-}
-
-static DHT11_IO_t dht11_io = {
-    .set_output = DHT11_SetOutput,
-    .set_input = DHT11_SetInput,
-    .write_low = DHT11_WriteLow,
-    .write_high = DHT11_WriteHigh,
-    .read_pin = DHT11_ReadPin,
-    .delay_us = DHT11_DelayUs,
-    .delay_ms = DHT11_DelayMs,
+static HCSR04_IO_t hcsr04_io = {
+    .trig = HCSR04_Trig,
+    .read_echo = HCSR04_ReadEcho,
+    .get_us = HCSR04_GetUs,
 };
 /* USER CODE END 0 */
 
@@ -160,88 +143,72 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-  DWT->CYCCNT = 0;
-  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  HAL_TIM_Base_Start(&htim3);
 
   OLED_Init(&oled_io);
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  DHT11_Init(&dht11_io);
 
-  HAL_Delay(1000);
-  DHT11_ReadData(&dht11_data);
-  HAL_Delay(100);
+  HCSR04_Init(&hcsr04_io);
 
-  OLED_ShowString(12, 0, "DHT11 Sensor", 1);
-  OLED_ShowString(16, 20, "Temp: --.- C", 1);
-  OLED_ShowString(16, 36, "Humi: --.- %", 1);
-  OLED_ShowString(28, 52, "Reading...", 1);
+  OLED_ShowString(16, 0, "Ultrasonic", 2);
+  OLED_ShowString(0, 24, "C:----- P:--- E:-", 1);
   OLED_Display();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last_dht11 = 0;
+  uint32_t last_hcsr04 = 0;
   while (1)
   {
     uint32_t now = HAL_GetTick();
 
-    if (now - last_dht11 >= 2000)
+    if (now - last_hcsr04 >= 200)
     {
-        last_dht11 = now;
+        last_hcsr04 = now;
         char buf[30];
 
-        int8_t dht_ret = DHT11_ReadData(&dht11_data);
-        if (dht_ret == DHT11_OK)
+        int8_t hc_ret = HCSR04_Read(&hcsr04_dist_mm);
+
+        uint32_t cnt = TIM3->CNT;
+        buf[0] = 'C'; buf[1] = ':';
+        buf[2] = '0' + (cnt / 10000) % 10;
+        buf[3] = '0' + (cnt / 1000) % 10;
+        buf[4] = '0' + (cnt / 100) % 10;
+        buf[5] = '0' + (cnt / 10) % 10;
+        buf[6] = '0' + cnt % 10;
+        buf[7] = ' ';
+
+        if (hc_ret == HCSR04_OK)
         {
-            int16_t t = dht11_data.temperature;
-            uint16_t h = dht11_data.humidity;
+            uint32_t m = hcsr04_dist_mm;
+            uint32_t cm = m / 10;
+            uint32_t mm = m % 10;
+            buf[8] = 'D'; buf[9] = ':';
 
-            uint8_t sign = ' ';
-            if (t < 0) { t = -t; sign = '-'; }
-
-            buf[0] = 'T'; buf[1] = 'e'; buf[2] = 'm'; buf[3] = 'p'; buf[4] = ':';
-            buf[5] = ' '; buf[6] = sign;
-            buf[7] = '0' + (t / 100) % 10;
-            buf[8] = '0' + (t / 10) % 10;
-            buf[9] = '.';
-            buf[10] = '0' + t % 10;
-            buf[11] = ' '; buf[12] = 'C'; buf[13] = '\0';
-            OLED_ShowString(16, 20, buf, 1);
-
-            buf[0] = 'H'; buf[1] = 'u'; buf[2] = 'm'; buf[3] = 'i'; buf[4] = ':';
-            buf[5] = ' '; buf[6] = ' ';
-            buf[7] = '0' + (h / 100) % 10;
-            buf[8] = '0' + (h / 10) % 10;
-            buf[9] = '.';
-            buf[10] = '0' + h % 10;
-            buf[11] = ' '; buf[12] = '%'; buf[13] = '\0';
-            OLED_ShowString(16, 36, buf, 1);
-
-            OLED_ShowString(28, 52, "OK        ", 1);
+            if (cm >= 100) { buf[10] = '0' + cm / 100; cm %= 100; }
+            else           { buf[10] = ' '; }
+            if (cm >= 10 || buf[10] != ' ') { buf[11] = '0' + cm / 10; cm %= 10; }
+            else                           { buf[11] = ' '; }
+            buf[12] = '0' + cm;
+            buf[13] = '.';
+            buf[14] = '0' + mm;
+            buf[15] = 'c'; buf[16] = 'm'; buf[17] = '\0';
+            OLED_ShowString(0, 24, buf, 1);
         }
         else
         {
-            OLED_ShowString(16, 20, "Temp: --.- C", 1);
-            OLED_ShowString(16, 36, "Humi: --.- %", 1);
-
-            buf[0] = 'E'; buf[1] = '-';
-            uint8_t ec = (uint8_t)(-dht_ret);
-            buf[2] = '0' + ec;
-            buf[3] = ' ';
-            uint8_t p = 4;
-            for (uint8_t i = 0; i < 5; i++)
-            {
-                uint8_t b = dht11_data.raw[i];
-                uint8_t hi = b >> 4;
-                uint8_t lo = b & 0x0F;
-                buf[p++] = hi < 10 ? '0' + hi : 'A' + hi - 10;
-                buf[p++] = lo < 10 ? '0' + lo : 'A' + lo - 10;
-                if (i < 4) buf[p++] = ':';
-            }
-            buf[p] = '\0';
-            OLED_ShowString(8, 52, buf, 1);
+            uint8_t p = 8;
+            buf[p++] = 'P'; buf[p++] = ':';
+            uint32_t pv = HCSR04_GetPulseUs();
+            buf[p++] = '0' + (pv / 100) % 10;
+            buf[p++] = '0' + (pv / 10) % 10;
+            buf[p++] = '0' + pv % 10;
+            buf[p++] = ' ';
+            buf[p++] = 'E'; buf[p++] = ':';
+            buf[p++] = (uint8_t)(-hc_ret) + '0';
+            buf[p++] = '\0';
+            OLED_ShowString(0, 24, buf, 1);
         }
 
         OLED_Display();
