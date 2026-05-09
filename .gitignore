@@ -20,7 +20,7 @@
 *.uvoptx
 
 # Keil 输出目录
-MDK-ARM/F103C8T6-LCD/
+MDK-ARM/F103-Driver-Lab/
 MDK-ARM/DebugConfig/
 MDK-ARM/Listings/
 MDK-ARM/Objects/

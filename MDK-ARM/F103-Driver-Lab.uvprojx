@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>F103C8T6-LCD</TargetName>
+      <TargetName>F103-Driver-Lab</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <pArmCC>6230000::V6.23::ARMCLANG</pArmCC>
@@ -49,8 +49,8 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>F103C8T6-LCD\</OutputDirectory>
-          <OutputName>F103C8T6-LCD</OutputName>
+          <OutputDirectory>F103-Driver-Lab\</OutputDirectory>
+          <OutputName>F103-Driver-Lab</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -138,7 +138,7 @@
             <DriverSelection>4101</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
-          <Flash2>BIN\UL2V8M.DLL</Flash2>
+          <Flash2>BIN\UL2CM3.DLL</Flash2>
           <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
@@ -810,7 +810,7 @@
       <component Cclass="CMSIS" Cgroup="CORE" Cvendor="ARM" Cversion="6.1.0" condition="ARMv6_7_8-M Device">
         <package name="CMSIS" schemaVersion="1.7.36" url="https://www.keil.com/pack/" vendor="ARM" version="6.1.0"/>
         <targetInfos>
-          <targetInfo name="F103C8T6-LCD"/>
+          <targetInfo name="F103-Driver-Lab"/>
         </targetInfos>
       </component>
     </components>
