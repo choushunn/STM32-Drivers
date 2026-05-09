@@ -7,9 +7,21 @@ extern "C" {
 
 #include <stdint.h>
 
+/*
+ * 128×64 I2C OLED 驱动
+ * 支持 1.3" SH1106 / 0.96" SSD1306 双控制器
+ * 分辨率 128×64, 帧缓冲 1024 字节
+ */
+
 #define OLED_WIDTH          128
 #define OLED_HEIGHT         64
 #define OLED_PAGES          (OLED_HEIGHT / 8)
+
+/* 控制器类型 (默认 SSD1306) */
+typedef enum {
+    OLED_CONTROLLER_SSD1306 = 0,
+    OLED_CONTROLLER_SH1106  = 1,
+} OLED_Controller_t;
 
 typedef struct {
     void (*write_cmd)(uint8_t cmd);
@@ -17,6 +29,7 @@ typedef struct {
 } OLED_IO_t;
 
 void OLED_Init(OLED_IO_t *io);
+void OLED_InitEx(OLED_IO_t *io, OLED_Controller_t ctrl);
 void OLED_DisplayOn(void);
 void OLED_DisplayOff(void);
 void OLED_Clear(void);

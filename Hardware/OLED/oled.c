@@ -4,11 +4,10 @@
 
 static uint8_t OLED_Buffer[OLED_WIDTH * OLED_PAGES];
 static OLED_IO_t *pIO = NULL;
+static OLED_Controller_t oled_ctrl = OLED_CONTROLLER_SSD1306;
 
-void OLED_Init(OLED_IO_t *io)
+static void oled_init_seq(void)
 {
-    pIO = io;
-
     pIO->write_cmd(0xAE);
     pIO->write_cmd(0xD5);
     pIO->write_cmd(0x80);
@@ -19,12 +18,17 @@ void OLED_Init(OLED_IO_t *io)
     pIO->write_cmd(0x40);
     pIO->write_cmd(0x8D);
     pIO->write_cmd(0x14);
-    pIO->write_cmd(0x20);
-    pIO->write_cmd(0x02);
+
+    if (oled_ctrl != OLED_CONTROLLER_SH1106)
+    {
+        pIO->write_cmd(0x20);
+        pIO->write_cmd(0x00);
+    }
+
     pIO->write_cmd(0xA1);
     pIO->write_cmd(0xC8);
     pIO->write_cmd(0x81);
-    pIO->write_cmd(0x7F);
+    pIO->write_cmd((oled_ctrl == OLED_CONTROLLER_SH1106) ? 0x7F : 0xCF);
     pIO->write_cmd(0xD9);
     pIO->write_cmd(0xF1);
     pIO->write_cmd(0xDB);
@@ -34,6 +38,19 @@ void OLED_Init(OLED_IO_t *io)
     pIO->write_cmd(0xDA);
     pIO->write_cmd(0x12);
     pIO->write_cmd(0xAF);
+}
+
+void OLED_Init(OLED_IO_t *io)
+{
+    OLED_InitEx(io, OLED_CONTROLLER_SSD1306);
+}
+
+void OLED_InitEx(OLED_IO_t *io, OLED_Controller_t ctrl)
+{
+    pIO = io;
+    oled_ctrl = ctrl;
+
+    oled_init_seq();
 
     OLED_Clear();
     OLED_Display();
@@ -58,11 +75,13 @@ void OLED_Display(void)
 {
     if (!pIO) return;
 
+    uint8_t col_ofs = (oled_ctrl == OLED_CONTROLLER_SH1106) ? 2 : 0;
+
     for (uint8_t page = 0; page < OLED_PAGES; page++)
     {
         pIO->write_cmd(0xB0 + page);
-        pIO->write_cmd(0x02);
-        pIO->write_cmd(0x10);
+        pIO->write_cmd(col_ofs & 0x0F);
+        pIO->write_cmd(0x10 | ((col_ofs >> 4) & 0x0F));
         pIO->write_data(&OLED_Buffer[page * OLED_WIDTH], OLED_WIDTH);
     }
 }
@@ -197,9 +216,11 @@ void OLED_FillCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color)
 
 void OLED_SetCursor(uint8_t x, uint8_t y)
 {
+    uint8_t col_ofs = (oled_ctrl == OLED_CONTROLLER_SH1106) ? 2 : 0;
+    x += col_ofs;
     pIO->write_cmd(0xB0 + y);
-    pIO->write_cmd(((x + 2) & 0x0F));
-    pIO->write_cmd(0x10 | (((x + 2) >> 4) & 0x0F));
+    pIO->write_cmd(x & 0x0F);
+    pIO->write_cmd(0x10 | ((x >> 4) & 0x0F));
 }
 
 void OLED_ShowChar(uint8_t x, uint8_t y, char ch, uint8_t size)

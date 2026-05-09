@@ -1,10 +1,10 @@
-# SH1106 / SSD1306 OLED 驱动
+# 128×64 OLED 驱动 (SH1106 / SSD1306)
 
-[![API](https://img.shields.io/badge/API-2%20callbacks-yellowgreen)]()
+[![Size](https://img.shields.io/badge/Size-1.3%22%20%7C%200.96%22-lightgrey)]()
 [![Controller](https://img.shields.io/badge/Controller-SH1106%20%7C%20SSD1306-brightgreen)]()
-[![Interface](https://img.shields.io/badge/Interface-I2C%20%7C%20SPI-blue)]()
+[![Interface](https://img.shields.io/badge/Interface-I2C-blue)]()
 
-基于函数指针接口解耦的 OLED 驱动，兼容 **SH1106** 和 **SSD1306** 控制器，支持绘图、字符和数值显示，可跨平台移植。
+基于函数指针接口解耦的 128×64 I2C OLED 驱动，同时支持 **1.3 寸 SH1106** 和 **0.96 寸 SSD1306** 控制器，支持绘图、字符和数值显示，可跨平台移植。
 
 ## 架构
 
@@ -21,9 +21,21 @@
 └─────────────────────────────┘
 ```
 
+## 控制器选择
+
+| 参数 | 1.3" 屏 | 0.96" 屏 |
+|---|---|---|
+| 控制器 | SH1106 | SSD1306 |
+| 分辨率 | 128×64 | 128×64 |
+| 初始化 | `OLED_InitEx(&io, OLED_CONTROLLER_SH1106)` | `OLED_Init(&io)` (默认) |
+| 内部列数 | 132 | 128 |
+| 列偏移 | +2 | 0 |
+
+**`OLED_Init()` 默认初始化为 SSD1306（0.96 寸）**，这是最常用的型号。1.3 寸 SH1106 需用 `OLED_InitEx()` 指定 `OLED_CONTROLLER_SH1106`。
+
 ## 特性
 
-- **双控制器兼容** — 自动适配 SH1106 和 SSD1306
+- **双控制器兼容** — SH1106 (1.3") 和 SSD1306 (0.96")
 - **帧缓冲架构** — 先写入缓冲区，一次性刷新屏幕，无闪烁
 - **图形绘制** — 点、线、矩形、圆、填充
 - **文本显示** — ASCII 字符 (5×7)，支持 1~4 倍缩放
@@ -32,7 +44,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `oled.h` | API 声明 + `OLED_IO_t` 接口定义 |
+| `oled.h` | API 声明 + `OLED_IO_t` 接口定义 + 控制器类型枚举 |
 | `oled_font.h` | 5×7 ASCII 字库 (95 个可打印字符) |
 | `oled.c` | 驱动核心实现 |
 
@@ -42,7 +54,8 @@
 
 | 函数 | 说明 |
 |---|---|
-| `OLED_Init(OLED_IO_t *io)` | 初始化 OLED |
+| `OLED_Init(OLED_IO_t *io)` | 初始化 (默认 SH1106) |
+| `OLED_InitEx(OLED_IO_t *io, OLED_Controller_t ctrl)` | 初始化 (指定控制器) |
 | `OLED_Display()` | 刷新缓冲区到屏幕 |
 | `OLED_Clear()` | 清空缓冲区 |
 | `OLED_DisplayOn()` | 开启显示 |
@@ -114,21 +127,14 @@ static OLED_IO_t oled_io = {
 
 > I2C 地址：**0x78** (8 位写地址) = **0x3C** (7 位地址)
 
-### 3. 初始化与显示
+### 3. 初始化
 
 ```c
-/* USER CODE BEGIN 2 */
+/* 0.96 寸 SSD1306 (默认) */
 OLED_Init(&oled_io);
 
-OLED_ShowString(20, 0, "STM32 OLED", 2);
-OLED_ShowString(8, 24, "SH1106 Driver", 1);
-OLED_ShowString(8, 40, "I2C 0x78 400kHz", 1);
-OLED_Display();
-/* USER CODE END 2 */
-
-while (1)
-{
-}
+/* 1.3 寸 SH1106 */
+OLED_InitEx(&oled_io, OLED_CONTROLLER_SH1106);
 ```
 
 ### 完整 main 示例
@@ -160,21 +166,4 @@ int main(void)
 
 1. 复制 `oled.h`、`oled_font.h`、`oled.c` 到新项目
 2. 实现 `OLED_IO_t` 的两个回调函数（支持 I2C 或 SPI）
-3. 调用 `OLED_Init()` 初始化
-
-### SPI 接口移植示例
-
-```c
-static void Spi_WriteCmd(uint8_t cmd)
-{
-    /* CS=Low; DC=Low; SPI 发送 cmd; CS=High */
-}
-
-static void Spi_WriteData(const uint8_t *data, uint16_t len)
-{
-    /* CS=Low; DC=High; SPI 发送 len 字节; CS=High */
-}
-
-OLED_IO_t io = {Spi_WriteCmd, Spi_WriteData};
-OLED_Init(&io);
-```
+3. 调用 `OLED_Init()` 或 `OLED_InitEx()` 初始化

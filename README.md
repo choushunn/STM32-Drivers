@@ -4,7 +4,7 @@
 [![Framework](https://img.shields.io/badge/Framework-HAL-green)]()
 [![IDE](https://img.shields.io/badge/IDE-Keil%20MDK-orange)]()
 
-基于 STM32 HAL 库的多传感器采集与显示项目，支持 **DHT11 温湿度**、**HC-SR04 超声波测距**、**模拟摇杆** 和 **旋转编码器** 输入，数据通过 **OLED** 屏幕展示。驱动层全部采用函数指针接口解耦，可跨平台移植。
+基于 STM32 HAL 库的多传感器采集与显示项目，支持 **DHT11 温湿度**、**HC-SR04 超声波测距**、**模拟摇杆**、**旋转编码器** 和 **蓝牙透传**，数据通过 **OLED** 屏幕展示。驱动层全部采用函数指针接口解耦，可跨平台移植。
 
 ## 硬件接线
 
@@ -24,13 +24,14 @@ F103C8T6-LCD/
 │   ├── Inc/                     #   头文件
 │   └── Src/                     #   main.c 及外设初始化
 ├── Hardware/                    # 硬件驱动层 (跨平台通用)
-│   ├── OLED/                    #   SH1106/SSD1306 OLED 驱动
+│   ├── OLED/                    #   1.3/0.96寸 128×64 OLED 驱动 (SH1106/SSD1306, I2C)
 │   ├── DHT11/                   #   DHT11 温湿度传感器驱动
 │   ├── HCSR04/                  #   HC-SR04 超声波测距驱动
 │   ├── Joystick/                #   模拟摇杆驱动 (双轴ADC + 按键)
 │   ├── Encoder/                 #   旋转编码器驱动 (正交解码 + 按键)
 │   ├── SG90/                    #   SG90 舵机驱动 (PWM + 平滑转动)
-│   └── DAC1220/                 #   DAC1220 20位DAC驱动 (3线SDIO + 自校准)
+│   ├── DAC1220/                 #   DAC1220 20位DAC驱动 (3线SDIO + 自校准)
+│   └── ZS040/                   #   ZS-040/HC-05 蓝牙驱动 (UART + AT 配置)
 ├── Drivers/                     # STM32 HAL 库 (CubeMX 生成)
 ├── MDK-ARM/                     # Keil 工程文件
 └── F103C8T6-LCD.ioc             # CubeMX 配置文件
@@ -40,13 +41,14 @@ F103C8T6-LCD/
 
 | 驱动 | 接口函数数 | 关键特性 | 文档 |
 |---|---|---|---|
-| [OLED](Hardware/OLED/README.md) | 2 个 | 绘图 / 字符 / 数值显示, SH1106 + SSD1306 | [README](Hardware/OLED/README.md) |
+| [OLED](Hardware/OLED/README.md) | 2 个 | SH1106+SSD1306, 绘图/字符/数值, 双控制器 | [README](Hardware/OLED/README.md) |
 | [DHT11](Hardware/DHT11/README.md) | 7 个 | 单总线时序, 校验和检测 | [README](Hardware/DHT11/README.md) |
 | [HC-SR04](Hardware/HCSR04/README.md) | 3 个 | EMA 滤波, 16位溢出补偿, 超时保护 | [README](Hardware/HCSR04/README.md) |
 | [Joystick](Hardware/Joystick/joystick.h) | 3 个 | 双轴ADC + 按键, 方向判别 + 死区 | — |
 | [Encoder](Hardware/Encoder/encoder.h) | 4 个 | 正交解码, 按键消抖, 长短按识别 | — |
 | [SG90](Hardware/SG90/sg90.h) | 1~2 个 | PWM 角度控制, 平滑转动, 范围检查 | — |
 | [DAC1220](Hardware/DAC1220/dac1220.h) | 5 个 | 3线SDIO 20位DAC, 寄存器读写, 自校准 | — |
+| [ZS040](Hardware/ZS040/zs040.h) | 7 个 | UART 蓝牙透传, AT 指令配置, 状态检测 | — |
 
 ## 驱动设计特点
 
