@@ -396,3 +396,33 @@ void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t dec
 
     OLED_ShowString(x, y, final, size);
 }
+
+void OLED_TestPattern(void)
+{
+    OLED_Clear();
+
+    /* 画边框 */
+    OLED_DrawRect(0, 0, 127, 63, 1);
+    OLED_DrawRect(2, 2, 123, 59, 1);
+
+    /* 画对角线 */
+    OLED_DrawLine(4, 4, 123, 59, 1);
+    OLED_DrawLine(123, 4, 4, 59, 1);
+
+    /* 左上角：画圆 + 填充圆 */
+    OLED_DrawCircle(20, 20, 12, 1);
+    OLED_FillCircle(58, 20, 12, 1);
+
+    /* 右上角：显示字符 1x ~ 3x */
+    OLED_ShowString(70, 4, "ABC", 1);
+    OLED_ShowString(70, 16, "ABC", 2);
+    OLED_ShowString(70, 36, "ABC", 3);
+
+    /* 底部：显示数字和浮点数 */
+    OLED_ShowNum(4, 40, 1234, 4, 1);
+    OLED_ShowFloat(40, 40, 3.14f, 2, 2, 1);
+    OLED_ShowString(4, 52, "OLED OK!", 1);
+    OLED_ShowNum(80, 52, 8888, 4, 1);
+
+    OLED_Display();    
+}

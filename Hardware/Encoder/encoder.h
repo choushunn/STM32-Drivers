@@ -7,11 +7,9 @@ extern "C" {
 
 #include <stdint.h>
 
-/* 错误码 */
 #define ENCODER_OK            0
 #define ENCODER_ERR_NULL    (-1)
 
-/* 方向 */
 typedef enum {
     ENCODER_DIR_NONE  = 0,
     ENCODER_DIR_CW    = 1,
@@ -27,6 +25,7 @@ typedef struct {
 
 void ENCODER_Init(ENCODER_IO_t *io);
 void ENCODER_Process(void);
+void ENCODER_ExtiHandler(uint8_t pin_a, uint8_t pin_b);
 int32_t ENCODER_GetCount(void);
 void ENCODER_SetCount(int32_t count);
 ENCODER_Dir_t ENCODER_GetDirection(void);

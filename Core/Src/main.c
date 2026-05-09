@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
+#include "encoder.h"
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -77,36 +78,107 @@ static OLED_IO_t oled_io = {
     .write_data = OLED_WriteData,
 };
 
-static void OLED_TestPattern(void)
+
+/* ---- EC11 Encoder IO Callbacks ---- */
+static uint8_t ENCODER_ReadA(void)
 {
+    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET) ? 0 : 1;
+}
+
+static uint8_t ENCODER_ReadB(void)
+{
+    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET) ? 0 : 1;
+}
+
+static uint8_t ENCODER_ReadBtn(void)
+{
+    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2) == GPIO_PIN_RESET) ? 0 : 1;
+}
+
+static uint32_t ENCODER_GetMs(void)
+{
+    return HAL_GetTick();
+}
+
+static ENCODER_IO_t encoder_io = {
+    .read_a   = ENCODER_ReadA,
+    .read_b   = ENCODER_ReadB,
+    .read_btn = ENCODER_ReadBtn,
+    .get_ms   = ENCODER_GetMs,
+};
+
+/* ---- OLED 显示编码器数据 ---- */
+static int32_t prev_disp_count = 0;
+static void ENCODER_Display(void)
+{
+    int32_t count = ENCODER_GetCount();
+    uint8_t press = ENCODER_GetBtnPress();
+    uint8_t long_press = ENCODER_GetBtnLongPress();
+
+    if (count > 54)
+    {
+        count = 54;
+        ENCODER_SetCount(54);
+    }
+    if (count < -54)
+    {
+        count = -54;
+        ENCODER_SetCount(-54);
+    }
+
     OLED_Clear();
 
-    /* 画边框 */
-    OLED_DrawRect(0, 0, 127, 63, 1);
-    OLED_DrawRect(2, 2, 123, 59, 1);
+    OLED_ShowString(16, 0, "== EC11 Encoder ==", 1);
 
-    /* 画对角线 */
-    OLED_DrawLine(4, 4, 123, 59, 1);
-    OLED_DrawLine(123, 4, 4, 59, 1);
+    OLED_ShowString(0, 10, "Count:", 1);
 
-    /* 左上角：画圆 + 填充圆 */
-    OLED_DrawCircle(20, 20, 12, 1);
-    OLED_FillCircle(58, 20, 12, 1);
+    if (count < 0)
+    {
+        OLED_ShowChar(40, 10, '-', 1);
+        OLED_ShowNum(46, 10, -count, 5, 1);
+    }
+    else
+    {
+        OLED_ShowString(40, 10, " ", 1);
+        OLED_ShowNum(46, 10, count, 5, 1);
+    }
 
-    /* 右上角：显示字符 1x ~ 3x */
-    OLED_ShowString(70, 4, "ABC", 1);
-    OLED_ShowString(70, 16, "ABC", 2);
-    OLED_ShowString(70, 36, "ABC", 3);
+    OLED_ShowString(0, 20, "Dir:", 1);
+    if (count > prev_disp_count)
+        OLED_ShowString(24, 20, "CW >>>>>", 1);
+    else if (count < prev_disp_count)
+        OLED_ShowString(24, 20, "<<<<< CCW", 1);
+    else
+        OLED_ShowString(24, 20, "---", 1);
 
-    /* 底部：显示数字和浮点数 */
-    OLED_ShowNum(4, 40, 1234, 4, 1);
-    OLED_ShowFloat(40, 40, 3.14f, 2, 2, 1);
-    OLED_ShowString(4, 52, "OLED OK!", 1);
-    OLED_ShowNum(80, 52, 8888, 4, 1);
+    prev_disp_count = count;
+
+    OLED_ShowString(0, 30, "Btn:", 1);
+    if (long_press)
+        OLED_ShowString(24, 30, "LONG PRESS!", 1);
+    else if (press)
+        OLED_ShowString(24, 30, "SHORT PRESS", 1);
+    else
+        OLED_ShowString(24, 30, "RELEASED   ", 1);
+
+    OLED_DrawRect(10, 42, 108, 20, 1);
+    {
+        uint8_t bar_len, bar_x;
+        if (count >= 0)
+        {
+            bar_len = (count > 54) ? 54 : count;
+            bar_x = 64;
+        }
+        else
+        {
+            bar_len = ((-count) > 54) ? 54 : (-count);
+            bar_x = 64 - bar_len;
+        }
+        if (bar_len > 0)
+            OLED_FillRect(bar_x, 44, bar_len, 16, 1);
+    }
 
     OLED_Display();
-    HAL_Delay(2000);
-    
 }
 /* USER CODE END 0 */
 
@@ -145,20 +217,53 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
 
+  {
+      GPIO_InitTypeDef gpio = {0};
+      gpio.Pin = GPIO_PIN_0;
+      gpio.Mode = GPIO_MODE_IT_RISING_FALLING;
+      gpio.Pull = GPIO_PULLUP;
+      HAL_GPIO_Init(GPIOA, &gpio);
+
+      gpio.Pin = GPIO_PIN_1;
+      gpio.Mode = GPIO_MODE_IT_RISING_FALLING;
+      gpio.Pull = GPIO_PULLUP;
+      HAL_GPIO_Init(GPIOA, &gpio);
+
+      gpio.Pin = GPIO_PIN_2;
+      gpio.Mode = GPIO_MODE_INPUT;
+      gpio.Pull = GPIO_PULLUP;
+      gpio.Speed = GPIO_SPEED_FREQ_HIGH;
+      HAL_GPIO_Init(GPIOA, &gpio);
+
+      HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
+      HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+  }
+
   OLED_InitEx(&oled_io, OLED_CONTROLLER_SH1106);
   OLED_TestPattern();
+  HAL_Delay(2000);
   OLED_Clear();
-  OLED_ShowString(24, 0, "OLED OK!", 1);
+  OLED_ShowString(8, 20, "Encoder...", 2);
   OLED_Display();
+  ENCODER_Init(&encoder_io);
+  HAL_Delay(1000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t last_display_tick = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    ENCODER_Process();
+
+    if (HAL_GetTick() - last_display_tick >= 100)
+    {
+        last_display_tick = HAL_GetTick();
+        ENCODER_Display();
+    }
   }
   /* USER CODE END 3 */
 }

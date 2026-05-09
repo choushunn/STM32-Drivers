@@ -47,6 +47,7 @@ void OLED_ShowString(uint8_t x, uint8_t y, const char *str, uint8_t size);
 void OLED_ShowNum(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint8_t size);
 void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t decLen, uint8_t size);
 void OLED_SetCursor(uint8_t x, uint8_t y);
+void OLED_TestPattern(void);
 
 #ifdef __cplusplus
 }

@@ -1,15 +1,9 @@
 #include "encoder.h"
 #include <stddef.h>
 
-/* 按键消抖时间 */
 #define ENCODER_DEBOUNCE_MS     20
 #define ENCODER_LONG_PRESS_MS   800
 
-/*
- * 正交解码状态表
- * 索引 = (prev_AB << 2) | curr_AB
- * 值:  0 = 无变化,  1 = CW,  -1 = CCW
- */
 static const int8_t encoder_state_table[16] = {
      0,  1, -1,  0,
     -1,  0,  0,  1,
@@ -22,7 +16,6 @@ static int32_t encoder_count = 0;
 static uint8_t prev_ab = 0;
 static ENCODER_Dir_t last_dir = ENCODER_DIR_NONE;
 
-/* 按键状态机 */
 static uint8_t btn_last = 1;
 static uint8_t btn_press_flag = 0;
 static uint8_t btn_long_flag = 0;
@@ -40,12 +33,9 @@ void ENCODER_Init(ENCODER_IO_t *io)
     }
 }
 
-void ENCODER_Process(void)
+void ENCODER_ExtiHandler(uint8_t pin_a, uint8_t pin_b)
 {
-    if (!pIO) return;
-
-    /* --- 旋转检测 --- */
-    uint8_t curr_ab = (pIO->read_a() << 1) | pIO->read_b();
+    uint8_t curr_ab = (pin_a << 1) | pin_b;
     if (curr_ab != prev_ab)
     {
         int8_t step = encoder_state_table[(prev_ab << 2) | curr_ab];
@@ -56,8 +46,12 @@ void ENCODER_Process(void)
         }
         prev_ab = curr_ab;
     }
+}
 
-    /* --- 按键检测 (带消抖) --- */
+void ENCODER_Process(void)
+{
+    if (!pIO) return;
+
     uint8_t btn_curr = pIO->read_btn();
 
     if (btn_debounce_pending)
