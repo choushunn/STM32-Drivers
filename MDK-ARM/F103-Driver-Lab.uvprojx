@@ -82,7 +82,7 @@
           </BeforeMake>
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
+            <RunUserProg2>1</RunUserProg2>
             <UserProg1Name></UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../Hardware/OLED;../Hardware/DHT11;../Hardware/HCSR04;../Hardware/SG90;..\Hardware\Encoder</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../Hardware/OLED;../Hardware/DHT11;../Hardware/HCSR04;../Hardware/SG90;../Hardware/Encoder;../Hardware/AHT20_BMP280</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -414,6 +414,16 @@
               <FileName>sg90.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Hardware\SG90\sg90.c</FilePath>
+            </File>
+            <File>
+              <FileName>aht20_bmp280.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\AHT20_BMP280\aht20_bmp280.c</FilePath>
+            </File>
+            <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\Encoder\encoder.c</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
@@ -551,11 +561,6 @@
               <FileName>stm32f1xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f1xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>encoder.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Hardware\Encoder\encoder.c</FilePath>
             </File>
           </Files>
         </Group>

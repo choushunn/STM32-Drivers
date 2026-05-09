@@ -49,14 +49,14 @@ F103-Driver-Lab/
 | [OLED](Hardware/OLED/README.md) | ✅ 已验证 | 2 | SH1106+SSD1306, 128×64, 绘图/字符/数值 |
 | [DHT11](Hardware/DHT11/README.md) | ✅ 已验证 | 7 | 单总线时序, 校验和检测 |
 | [HC-SR04](Hardware/HCSR04/README.md) | ✅ 已验证 | 3 | EMA 滤波, 16位溢出补偿, 超时保护 |
-| [Joystick](Hardware/Joystick/) | 📝 待验证 | 3 | 双轴 ADC, 方向判别 + 死区 |
-| [Encoder](Hardware/Encoder/) | 📝 待验证 | 4 | 正交解码, 按键消抖, 长短按 |
+| [Joystick](Hardware/Joystick/README.md) | ✅ 已验证 | 3 | 双轴 ADC, 方向判别 + 死区 |
+| [Encoder](Hardware/Encoder/README.md) | ✅ 已验证 | 4 | 正交解码, EXTI中断, 按键消抖, 长短按 |
 | [SG90](Hardware/SG90/) | 📝 待验证 | 1~2 | PWM 控制, 平滑转动, 范围检查 |
 | [DAC1220](Hardware/DAC1220/) | 📝 待验证 | 5 | 20 位精度, 3线 SDIO, 自校准 |
 | [ZS040](Hardware/ZS040/) | 📝 待验证 | 7 | 蓝牙透传, AT 指令配置, 状态检测 |
 
-> ✅ 已验证 — 代码已通过硬件测试
-> 📝 待验证 — 代码已编写，尚未连接硬件验证
+> ✅ 已验证 — 代码已通过硬件测试 (5项)
+> 📝 待验证 — 代码已编写，尚未连接硬件验证 (3项)
 
 各驱动的 **硬件接线说明**、**CubeMX 配置方法** 和 **API 参考** 见对应 `Hardware/<name>/README.md`。
 

@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
-#include "encoder.h"
+#include "aht20_bmp280.h"
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -79,104 +79,89 @@ static OLED_IO_t oled_io = {
 };
 
 
-/* ---- EC11 Encoder IO Callbacks ---- */
-static uint8_t ENCODER_ReadA(void)
+/* ---- AHT20+BMP280 IO Callbacks ---- */
+static int8_t SENSOR_Read(uint8_t dev_addr, uint8_t reg, uint8_t *data, uint16_t len)
 {
-    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET) ? 0 : 1;
+    if (reg != 0xFF)
+    {
+        if (HAL_I2C_Mem_Read(&hi2c2, dev_addr << 1, reg, I2C_MEMADD_SIZE_8BIT, data, len, 100) != HAL_OK)
+            return AHT20_BMP280_ERR_I2C;
+    }
+    else
+    {
+        if (HAL_I2C_Master_Receive(&hi2c2, dev_addr << 1, data, len, 100) != HAL_OK)
+            return AHT20_BMP280_ERR_I2C;
+    }
+    return AHT20_BMP280_OK;
 }
 
-static uint8_t ENCODER_ReadB(void)
+static int8_t SENSOR_Write(uint8_t dev_addr, uint8_t reg, uint8_t *data, uint16_t len)
 {
-    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_1) == GPIO_PIN_RESET) ? 0 : 1;
+    if (reg != 0xFF)
+    {
+        uint8_t buf[9];
+        buf[0] = reg;
+        for (uint16_t i = 0; i < len; i++)
+            buf[1 + i] = data[i];
+        if (HAL_I2C_Master_Transmit(&hi2c2, dev_addr << 1, buf, len + 1, 100) != HAL_OK)
+            return AHT20_BMP280_ERR_I2C;
+    }
+    else
+    {
+        if (HAL_I2C_Master_Transmit(&hi2c2, dev_addr << 1, data, len, 100) != HAL_OK)
+            return AHT20_BMP280_ERR_I2C;
+    }
+    return AHT20_BMP280_OK;
 }
 
-static uint8_t ENCODER_ReadBtn(void)
+static void SENSOR_Delay(uint32_t ms)
 {
-    return (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2) == GPIO_PIN_RESET) ? 0 : 1;
+    HAL_Delay(ms);
 }
 
-static uint32_t ENCODER_GetMs(void)
-{
-    return HAL_GetTick();
-}
-
-static ENCODER_IO_t encoder_io = {
-    .read_a   = ENCODER_ReadA,
-    .read_b   = ENCODER_ReadB,
-    .read_btn = ENCODER_ReadBtn,
-    .get_ms   = ENCODER_GetMs,
+static AHT20_BMP280_IO_t sensor_io = {
+    .read = SENSOR_Read,
+    .write = SENSOR_Write,
+    .delay_ms = SENSOR_Delay,
 };
 
-/* ---- OLED 显示编码器数据 ---- */
-static int32_t prev_disp_count = 0;
-static void ENCODER_Display(void)
+/* ---- OLED 显示温湿度气压 ---- */
+static void SENSOR_Display(AHT20_BMP280_Data_t *data)
 {
-    int32_t count = ENCODER_GetCount();
-    uint8_t press = ENCODER_GetBtnPress();
-    uint8_t long_press = ENCODER_GetBtnLongPress();
-
-    if (count > 54)
-    {
-        count = 54;
-        ENCODER_SetCount(54);
-    }
-    if (count < -54)
-    {
-        count = -54;
-        ENCODER_SetCount(-54);
-    }
-
     OLED_Clear();
 
-    OLED_ShowString(16, 0, "== EC11 Encoder ==", 1);
+    OLED_ShowString(22, 0, "AHT20+BMP280", 1);
 
-    OLED_ShowString(0, 10, "Count:", 1);
-
-    if (count < 0)
+    if (data->aht20_ok)
     {
-        OLED_ShowChar(40, 10, '-', 1);
-        OLED_ShowNum(46, 10, -count, 5, 1);
+        OLED_ShowString(0, 10, "T:", 1);
+        OLED_ShowFloat(12, 10, data->temp, 2, 1, 1);
+        OLED_ShowString(40, 10, "C", 1);
+
+        OLED_ShowString(54, 10, "H:", 1);
+        OLED_ShowFloat(66, 10, data->humidity, 2, 1, 1);
+        OLED_ShowString(94, 10, "%", 1);
     }
     else
     {
-        OLED_ShowString(40, 10, " ", 1);
-        OLED_ShowNum(46, 10, count, 5, 1);
+        OLED_ShowString(0, 10, "T:--.-C  H:--.-%", 1);
     }
 
-    OLED_ShowString(0, 20, "Dir:", 1);
-    if (count > prev_disp_count)
-        OLED_ShowString(24, 20, "CW >>>>>", 1);
-    else if (count < prev_disp_count)
-        OLED_ShowString(24, 20, "<<<<< CCW", 1);
-    else
-        OLED_ShowString(24, 20, "---", 1);
-
-    prev_disp_count = count;
-
-    OLED_ShowString(0, 30, "Btn:", 1);
-    if (long_press)
-        OLED_ShowString(24, 30, "LONG PRESS!", 1);
-    else if (press)
-        OLED_ShowString(24, 30, "SHORT PRESS", 1);
-    else
-        OLED_ShowString(24, 30, "RELEASED   ", 1);
-
-    OLED_DrawRect(10, 42, 108, 20, 1);
+    if (data->bmp280_ok)
     {
-        uint8_t bar_len, bar_x;
-        if (count >= 0)
-        {
-            bar_len = (count > 54) ? 54 : count;
-            bar_x = 64;
-        }
-        else
-        {
-            bar_len = ((-count) > 54) ? 54 : (-count);
-            bar_x = 64 - bar_len;
-        }
-        if (bar_len > 0)
-            OLED_FillRect(bar_x, 44, bar_len, 16, 1);
+        OLED_ShowString(0, 24, "P:", 1);
+        OLED_ShowFloat(12, 24, data->pressure, 4, 1, 1);
+        OLED_ShowString(60, 24, "hPa", 1);
     }
+    else
+    {
+        OLED_ShowString(0, 24, "P:----.-hPa", 1);
+    }
+
+    if (data->aht20_ok || data->bmp280_ok)
+        OLED_ShowString(58, 38, "OK", 1);
+    else
+        OLED_ShowString(58, 38, "FAIL", 1);
 
     OLED_Display();
 }
@@ -212,57 +197,36 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_I2C2_Init();
   MX_USART1_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
 
-  {
-      GPIO_InitTypeDef gpio = {0};
-      gpio.Pin = GPIO_PIN_0;
-      gpio.Mode = GPIO_MODE_IT_RISING_FALLING;
-      gpio.Pull = GPIO_PULLUP;
-      HAL_GPIO_Init(GPIOA, &gpio);
-
-      gpio.Pin = GPIO_PIN_1;
-      gpio.Mode = GPIO_MODE_IT_RISING_FALLING;
-      gpio.Pull = GPIO_PULLUP;
-      HAL_GPIO_Init(GPIOA, &gpio);
-
-      gpio.Pin = GPIO_PIN_2;
-      gpio.Mode = GPIO_MODE_INPUT;
-      gpio.Pull = GPIO_PULLUP;
-      gpio.Speed = GPIO_SPEED_FREQ_HIGH;
-      HAL_GPIO_Init(GPIOA, &gpio);
-
-      HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
-      HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-  }
-
   OLED_InitEx(&oled_io, OLED_CONTROLLER_SH1106);
   OLED_TestPattern();
   HAL_Delay(2000);
   OLED_Clear();
-  OLED_ShowString(8, 20, "Encoder...", 2);
+  OLED_ShowString(8, 20, "AHT20+BMP280...", 2);
   OLED_Display();
-  ENCODER_Init(&encoder_io);
-  HAL_Delay(1000);
+  AHT20_BMP280_Init(&sensor_io);
+  HAL_Delay(500);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last_display_tick = 0;
+  uint32_t last_sensor_tick = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    ENCODER_Process();
-
-    if (HAL_GetTick() - last_display_tick >= 100)
+    if (HAL_GetTick() - last_sensor_tick >= 1000)
     {
-        last_display_tick = HAL_GetTick();
-        ENCODER_Display();
+        AHT20_BMP280_Data_t data;
+        last_sensor_tick = HAL_GetTick();
+        AHT20_BMP280_Read(&data);
+        SENSOR_Display(&data);
     }
   }
   /* USER CODE END 3 */

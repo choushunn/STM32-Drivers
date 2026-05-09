@@ -337,24 +337,6 @@ void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t dec
     }
 
     uint32_t intPart = (uint32_t)num;
-    float decPartF = num - (float)intPart;
-    if (decPartF < 0)
-        decPartF = 0;
-
-    uint32_t multiplier = 1;
-    for (i = 0; i < decLen; i++)
-        multiplier *= 10;
-
-    uint32_t decPart = (uint32_t)(decPartF * multiplier + 0.5f);
-
-    for (i = 0; i < decLen; i++)
-    {
-        buf[pos + decLen - 1 - i] = '0' + (decPart % 10);
-        decPart /= 10;
-    }
-    pos += decLen;
-
-    buf[pos++] = '.';
 
     if (intPart == 0)
     {
@@ -373,28 +355,30 @@ void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t dec
             buf[pos++] = tmp[tlen - 1 - i];
     }
 
-    while ((pos - (num < 0 ? 1 : 0)) < (intLen + 1 + decLen))
-        buf[pos++] = ' ';
+    if (decLen > 0)
+    {
+        buf[pos++] = '.';
+
+        float decPartF = num - (float)((uint32_t)num);
+        if (decPartF < 0)
+            decPartF = 0;
+
+        uint32_t multiplier = 1;
+        for (i = 0; i < decLen; i++)
+            multiplier *= 10;
+
+        uint32_t decPart = (uint32_t)(decPartF * multiplier + 0.5f);
+
+        for (i = 0; i < decLen; i++)
+        {
+            buf[pos + decLen - 1 - i] = '0' + (decPart % 10);
+            decPart /= 10;
+        }
+        pos += decLen;
+    }
 
     buf[pos] = '\0';
-
-    char final[16];
-    uint8_t fpos = 0;
-
-    if (num < 0)
-        final[fpos++] = '-';
-
-    for (i = 0; i < intLen + 1 + decLen && buf[i] != '\0'; i++);
-
-    uint8_t start = 0;
-    if (pos > intLen + 1 + decLen)
-        start = pos - (intLen + 1 + decLen);
-
-    for (i = start; i < pos; i++)
-        final[fpos++] = buf[i];
-    final[fpos] = '\0';
-
-    OLED_ShowString(x, y, final, size);
+    OLED_ShowString(x, y, buf, size);
 }
 
 void OLED_TestPattern(void)
