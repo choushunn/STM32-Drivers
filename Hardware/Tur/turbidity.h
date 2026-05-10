@@ -1,9 +1,30 @@
-#ifndef __TURBIDITY_H__
-#define __TURBIDITY_H__
+#ifndef __TURBIDITY_H
+#define __TURBIDITY_H
 
-#include "stm32f10x.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Turbidity_Init(void);
-float Turbidity_Read(void);
+#include <stdint.h>
+
+#define TURBIDITY_OK            0
+#define TURBIDITY_ERR_NULL    (-1)
+
+typedef struct {
+    uint16_t (*read_adc)(void);
+} TURBIDITY_IO_t;
+
+typedef struct {
+    uint16_t raw;
+    float    turbidity;
+} TURBIDITY_Data_t;
+
+void TURBIDITY_Init(TURBIDITY_IO_t *io);
+uint16_t TURBIDITY_ReadRaw(void);
+float    TURBIDITY_CalcPercent(uint16_t raw);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
