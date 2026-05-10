@@ -76,15 +76,8 @@ F103-Driver-Lab/
 | 组件 | 工具 | 版本 |
 |------|------|------|
 | MCU | STM32F103C8T6 | - |
-| 时钟 | HSE 8MHz → PLL x9 → SYSCLK 72MHz | - |
-| HAL 库生成 | STM32CubeMX | v6.x (推荐) |
-| HAL 框架 | STM32Cube FW_F1 | v1.8.x |
+| HAL 库生成 | STM32CubeMX | v6.x  |
 | IDE/编译器 | Keil MDK-ARM (Armcc v5 / Armclang v6) | v5.x |
-| 调试器 | ST-Link/V2 (SWD) | - |
-| 串口调试 | USART1 @ 115200-8-N-1, PA9(TX) PA10(RX) | - |
-| 蓝牙串口 | USART2, PA2(TX) PA3(RX) | - |
-| I2C 外设 | I2C1 @ 400kHz, PB6(SCL) PB7(SDA) | - |
-| 版本控制 | Git | - |
 
 ## 首次使用
 
@@ -93,7 +86,7 @@ F103-Driver-Lab/
 3. 克隆仓库：
 
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/choushunn/STM32-Drivers
    cd F103-Driver-Lab
    ```
 

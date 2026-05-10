@@ -156,7 +156,11 @@ int8_t ZS040_SetBaud(uint32_t baud)
 
     uint32_t reg = baud_to_reg(baud);
     uint8_t p = 8;
-    if (reg >= 10) { cmd[p++] = '0' + (reg / 10); reg %= 10; }
+    if (reg >= 10)
+    {
+        cmd[p++] = '0' + (reg / 10);
+        reg %= 10;
+    }
     cmd[p++] = '0' + reg;
     cmd[p++] = ','; cmd[p++] = '0'; cmd[p++] = ','; cmd[p++] = '0';
     cmd[p] = '\0';

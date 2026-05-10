@@ -1,6 +1,8 @@
 #include "hcsr04.h"
 #include <stddef.h>
 
+#define HCSR04_FILTER_STRENGTH  3
+
 #define TIMEOUT_ECHO_HIGH_US  5000
 #define TIMEOUT_ECHO_LOW_US  30000
 #define TRIG_SETTLE_US       500

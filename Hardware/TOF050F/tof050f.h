@@ -18,7 +18,7 @@ typedef struct {
     void (*delay_ms)(uint32_t ms);
 } TOF050F_IO_t;
 
-int8_t TOF050F_Init(TOF050F_IO_t *io);
+void TOF050F_Init(TOF050F_IO_t *io);
 int8_t TOF050F_ReadDistance(uint16_t *dist_mm);
 
 #ifdef __cplusplus

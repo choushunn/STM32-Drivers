@@ -36,7 +36,7 @@ typedef struct {
     void (*delay_ms)(uint32_t ms);
 } MPU6050_IO_t;
 
-int8_t MPU6050_Init(MPU6050_IO_t *io);
+void MPU6050_Init(MPU6050_IO_t *io);
 int8_t MPU6050_Read(MPU6050_Data_t *data);
 float  MPU6050_GetAccelX(int16_t raw);
 float  MPU6050_GetAccelY(int16_t raw);

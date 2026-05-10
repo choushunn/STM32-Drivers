@@ -31,7 +31,6 @@ typedef enum {
 
 typedef struct {
     void (*uart_send)(const uint8_t *data, uint16_t len);
-    void (*uart_recv_cb)(uint8_t byte);
     void (*set_en)(uint8_t level);
     void (*set_key)(uint8_t level);
     uint8_t (*read_state)(void);

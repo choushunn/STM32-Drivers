@@ -23,19 +23,19 @@ static int8_t read_byte(uint16_t reg, uint8_t *data)
     return pIO->read_reg(reg, data, 1);
 }
 
-int8_t TOF050F_Init(TOF050F_IO_t *io)
+void TOF050F_Init(TOF050F_IO_t *io)
 {
     uint8_t id;
 
     pIO = io;
     if (!pIO)
-        return TOF050F_ERR_NULL;
+        return;
 
     if (read_byte(REG_ID_MODEL_ID, &id) != TOF050F_OK)
-        return TOF050F_ERR_I2C;
+        return;
 
     if (id != VL6180X_ID)
-        return TOF050F_ERR_I2C;
+        return;
 
     write_byte(0x0207, 0x01);
     write_byte(0x0208, 0x01);
@@ -63,8 +63,6 @@ int8_t TOF050F_Init(TOF050F_IO_t *io)
     write_byte(0x001E, 0x31);
     write_byte(0x001B, 0x00);
     write_byte(REG_SYSTEM_INTERRUPT_CONFIG, 0x24);
-
-    return TOF050F_OK;
 }
 
 int8_t TOF050F_ReadDistance(uint16_t *dist_mm)

@@ -59,18 +59,16 @@ static int8_t mpu_try_addr(uint8_t addr)
     return MPU6050_OK;
 }
 
-int8_t MPU6050_Init(MPU6050_IO_t *io)
+void MPU6050_Init(MPU6050_IO_t *io)
 {
     pIO = io;
     if (!pIO)
-        return MPU6050_ERR_NULL;
+        return;
 
     mpu_ok = 0;
 
     if (mpu_try_addr(MPU6050_ADDR) != MPU6050_OK)
         mpu_try_addr(MPU6050_ADDR_ALT);
-
-    return mpu_ok ? MPU6050_OK : MPU6050_ERR_I2C;
 }
 
 int8_t MPU6050_Read(MPU6050_Data_t *data)
