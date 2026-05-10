@@ -184,3 +184,23 @@ ZS040_State_t ZS040_GetState(void)
 
     return (pIO->read_state() == 1) ? ZS040_STATE_CONNECTED : ZS040_STATE_DISCONNECTED;
 }
+
+void ZS040_PutByte(uint8_t byte)
+{
+    uint16_t next = (rx_head + 1) % ZS040_RX_BUF_SIZE;
+    if (next != rx_tail)
+    {
+        rx_buf[rx_head] = byte;
+        rx_head = next;
+    }
+}
+
+int8_t ZS040_ReadByte(uint8_t *byte)
+{
+    if (!byte) return ZS040_ERR_PARAM;
+    if (rx_tail == rx_head) return -1;
+
+    *byte = rx_buf[rx_tail];
+    rx_tail = (rx_tail + 1) % ZS040_RX_BUF_SIZE;
+    return ZS040_OK;
+}

@@ -48,6 +48,8 @@ int8_t ZS040_SetPswd(const char *pswd);
 int8_t ZS040_SetBaud(uint32_t baud);
 int8_t ZS040_SetRole(ZS040_Role_t role);
 ZS040_State_t ZS040_GetState(void);
+void ZS040_PutByte(uint8_t byte);
+int8_t ZS040_ReadByte(uint8_t *byte);
 
 #ifdef __cplusplus
 }
