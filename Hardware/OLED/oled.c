@@ -6,6 +6,8 @@ static uint8_t OLED_Buffer[OLED_WIDTH * OLED_PAGES];
 static OLED_IO_t *pIO = NULL;
 static OLED_Controller_t oled_ctrl = OLED_CONTROLLER_SSD1306;
 
+/* 硬件初始化序列, 复用 SSD1306/SH1106 公用的命令,
+   SH1106 跳过 0x20/0x00(设置内存寻址模式) 并使用不同的对比度值 0x7F */
 static void oled_init_seq(void)
 {
     pIO->write_cmd(0xAE);
@@ -40,11 +42,13 @@ static void oled_init_seq(void)
     pIO->write_cmd(0xAF);
 }
 
+/* 默认使用 SSD1306 控制器 */
 void OLED_Init(OLED_IO_t *io)
 {
     OLED_InitEx(io, OLED_CONTROLLER_SSD1306);
 }
 
+/* 注册 IO 回调并执行初始化序列 */
 void OLED_InitEx(OLED_IO_t *io, OLED_Controller_t ctrl)
 {
     pIO = io;
@@ -66,11 +70,14 @@ void OLED_DisplayOff(void)
     if (pIO) pIO->write_cmd(0xAE);
 }
 
+/* 清空帧缓冲, 不立即刷新到屏幕 */
 void OLED_Clear(void)
 {
     memset(OLED_Buffer, 0x00, sizeof(OLED_Buffer));
 }
 
+/* 将帧缓冲通过 IO 回调逐页发送到 OLED,
+   SH1106 需要 2 列偏移, SSD1306 不需要 */
 void OLED_Display(void)
 {
     if (!pIO) return;
@@ -86,6 +93,7 @@ void OLED_Display(void)
     }
 }
 
+/* 设置或清除 (x,y) 处的像素 */
 void OLED_DrawPixel(uint8_t x, uint8_t y, uint8_t color)
 {
     if (x >= OLED_WIDTH || y >= OLED_HEIGHT)
@@ -101,6 +109,7 @@ void OLED_DrawPixel(uint8_t x, uint8_t y, uint8_t color)
     }
 }
 
+/* Bresenham 直线算法 */
 void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t color)
 {
     int16_t dx, dy, sx, sy, err, e2;
@@ -121,6 +130,7 @@ void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t color
     }
 }
 
+/* 画空心矩形, 由四条直线组成 */
 void OLED_DrawRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color)
 {
     OLED_DrawLine(x, y, x + w - 1, y, color);
@@ -129,6 +139,7 @@ void OLED_DrawRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color)
     OLED_DrawLine(x + w - 1, y, x + w - 1, y + h - 1, color);
 }
 
+/* 填充矩形区域 */
 void OLED_FillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color)
 {
     for (uint8_t i = 0; i < h; i++)
@@ -140,6 +151,7 @@ void OLED_FillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t color)
     }
 }
 
+/* Bresenham 画圆算法, 利用八对称性只计算 1/8 圆弧 */
 void OLED_DrawCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color)
 {
     int16_t f = 1 - r;
@@ -176,6 +188,7 @@ void OLED_DrawCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color)
     }
 }
 
+/* 先画垂直中轴线, 再用 Bresenham 步进填充两侧 */
 void OLED_FillCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color)
 {
     int16_t f = 1 - r;
@@ -214,6 +227,7 @@ void OLED_FillCircle(uint8_t x0, uint8_t y0, uint8_t r, uint8_t color)
     }
 }
 
+/* 设置 OLED 内部页地址和列地址 */
 void OLED_SetCursor(uint8_t x, uint8_t y)
 {
     uint8_t col_ofs = (oled_ctrl == OLED_CONTROLLER_SH1106) ? 2 : 0;
@@ -223,6 +237,7 @@ void OLED_SetCursor(uint8_t x, uint8_t y)
     pIO->write_cmd(0x10 | ((x >> 4) & 0x0F));
 }
 
+/* 在指定位置显示单个字符, size=1 直接操作像素, size>1 用像素块放大 5x7 字库 */
 void OLED_ShowChar(uint8_t x, uint8_t y, char ch, uint8_t size)
 {
     if (ch < ' ' || ch > '~')
@@ -272,6 +287,7 @@ void OLED_ShowChar(uint8_t x, uint8_t y, char ch, uint8_t size)
     }
 }
 
+/* 逐字符显示字符串, 超宽自动换行 */
 void OLED_ShowString(uint8_t x, uint8_t y, const char *str, uint8_t size)
 {
     while (*str)
@@ -287,6 +303,7 @@ void OLED_ShowString(uint8_t x, uint8_t y, const char *str, uint8_t size)
     }
 }
 
+/* 工具函数: 原地反转字符数组 */
 static void OLED_ReverseStr(char *str, uint8_t len)
 {
     for (uint8_t i = 0; i < len / 2; i++)
@@ -297,6 +314,7 @@ static void OLED_ReverseStr(char *str, uint8_t len)
     }
 }
 
+/* 将 uint32 转为字符串后显示, len 控制最小宽度补空格 */
 void OLED_ShowNum(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint8_t size)
 {
     char buf[12];
@@ -324,6 +342,7 @@ void OLED_ShowNum(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint8_t size)
     OLED_ShowString(x, y, buf, size);
 }
 
+/* 将 float 转为字符串后显示, 支持负数、整数部分和小数部分位数指定 */
 void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t decLen, uint8_t size)
 {
     char buf[16];
@@ -381,6 +400,7 @@ void OLED_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t dec
     OLED_ShowString(x, y, buf, size);
 }
 
+/* 显示测试图案, 包含矩形、对角线、圆、字符、数字、浮点数各尺寸 */
 void OLED_TestPattern(void)
 {
     OLED_Clear();

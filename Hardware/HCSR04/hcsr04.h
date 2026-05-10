@@ -13,9 +13,6 @@ extern "C" {
 #define HCSR04_ERR_TIMEOUT (-2)
 #define HCSR04_ERR_RANGE   (-3)
 
-/* 滤波配置：0=关闭, 1-7=滤波强度(越大越平滑,响应越慢) */
-#define HCSR04_FILTER_STRENGTH  3
-
 typedef struct {
     void (*trig)(void);
     uint8_t (*read_echo)(void);

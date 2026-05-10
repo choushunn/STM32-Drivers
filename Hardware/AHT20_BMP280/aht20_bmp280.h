@@ -38,7 +38,7 @@ typedef struct {
 
 void AHT20_BMP280_Init(AHT20_BMP280_IO_t *io);
 int8_t AHT20_BMP280_Read(AHT20_BMP280_Data_t *data);
-const char* AHT20_BMP280_ErrStr(int8_t err);
+const char *AHT20_BMP280_ErrStr(int8_t err);
 
 #ifdef __cplusplus
 }

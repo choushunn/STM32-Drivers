@@ -156,7 +156,11 @@ int8_t ZS040_SetBaud(uint32_t baud)
 
     uint32_t reg = baud_to_reg(baud);
     uint8_t p = 8;
-    if (reg >= 10) { cmd[p++] = '0' + (reg / 10); reg %= 10; }
+    if (reg >= 10)
+    {
+        cmd[p++] = '0' + (reg / 10);
+        reg %= 10;
+    }
     cmd[p++] = '0' + reg;
     cmd[p++] = ','; cmd[p++] = '0'; cmd[p++] = ','; cmd[p++] = '0';
     cmd[p] = '\0';
@@ -183,4 +187,24 @@ ZS040_State_t ZS040_GetState(void)
     if (!pIO) return ZS040_STATE_DISCONNECTED;
 
     return (pIO->read_state() == 1) ? ZS040_STATE_CONNECTED : ZS040_STATE_DISCONNECTED;
+}
+
+void ZS040_PutByte(uint8_t byte)
+{
+    uint16_t next = (rx_head + 1) % ZS040_RX_BUF_SIZE;
+    if (next != rx_tail)
+    {
+        rx_buf[rx_head] = byte;
+        rx_head = next;
+    }
+}
+
+int8_t ZS040_ReadByte(uint8_t *byte)
+{
+    if (!byte) return ZS040_ERR_PARAM;
+    if (rx_tail == rx_head) return -1;
+
+    *byte = rx_buf[rx_tail];
+    rx_tail = (rx_tail + 1) % ZS040_RX_BUF_SIZE;
+    return ZS040_OK;
 }

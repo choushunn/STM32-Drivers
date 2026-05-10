@@ -31,7 +31,6 @@ typedef enum {
 
 typedef struct {
     void (*uart_send)(const uint8_t *data, uint16_t len);
-    void (*uart_recv_cb)(uint8_t byte);
     void (*set_en)(uint8_t level);
     void (*set_key)(uint8_t level);
     uint8_t (*read_state)(void);
@@ -48,6 +47,8 @@ int8_t ZS040_SetPswd(const char *pswd);
 int8_t ZS040_SetBaud(uint32_t baud);
 int8_t ZS040_SetRole(ZS040_Role_t role);
 ZS040_State_t ZS040_GetState(void);
+void ZS040_PutByte(uint8_t byte);
+int8_t ZS040_ReadByte(uint8_t *byte);
 
 #ifdef __cplusplus
 }
