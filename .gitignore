@@ -20,11 +20,6 @@
 *.uvoptx
 
 # Keil 输出目录
-MDK-ARM/F103-Driver-Lab/
-MDK-ARM/DebugConfig/
-MDK-ARM/Listings/
-MDK-ARM/Objects/
-MDK-ARM/RTE/
 MDK-ARM/
 # ============================================
 # CubeMX 生成的 HAL 驱动
