@@ -1,415 +1,575 @@
 #include "st7735.h"
-#include <stddef.h>
 
-static ST7735_IO_t *pIO = NULL;
-
-static const uint8_t Font_5x7[][5] = {
-    {0x00,0x00,0x00,0x00,0x00}, {0x00,0x00,0x5F,0x00,0x00},
-    {0x00,0x07,0x00,0x07,0x00}, {0x14,0x7F,0x14,0x7F,0x14},
-    {0x24,0x2A,0x7F,0x2A,0x12}, {0x23,0x13,0x08,0x64,0x62},
-    {0x36,0x49,0x55,0x22,0x50}, {0x00,0x00,0x07,0x00,0x00},
-    {0x00,0x1C,0x22,0x41,0x00}, {0x00,0x41,0x22,0x1C,0x00},
-    {0x08,0x2A,0x1C,0x2A,0x08}, {0x08,0x08,0x3E,0x08,0x08},
-    {0x00,0x50,0x30,0x00,0x00}, {0x08,0x08,0x08,0x08,0x08},
-    {0x00,0x60,0x60,0x00,0x00}, {0x20,0x10,0x08,0x04,0x02},
-    {0x3E,0x51,0x49,0x45,0x3E}, {0x00,0x42,0x7F,0x40,0x00},
-    {0x42,0x61,0x51,0x49,0x46}, {0x21,0x41,0x45,0x4B,0x31},
-    {0x18,0x14,0x12,0x7F,0x10}, {0x27,0x45,0x45,0x45,0x39},
-    {0x3C,0x4A,0x49,0x49,0x30}, {0x01,0x71,0x09,0x05,0x03},
-    {0x36,0x49,0x49,0x49,0x36}, {0x06,0x49,0x49,0x29,0x1E},
-    {0x00,0x36,0x36,0x00,0x00}, {0x00,0x56,0x36,0x00,0x00},
-    {0x00,0x08,0x14,0x22,0x41}, {0x14,0x14,0x14,0x14,0x14},
-    {0x41,0x22,0x14,0x08,0x00}, {0x02,0x01,0x51,0x09,0x06},
-    {0x32,0x49,0x79,0x41,0x3E}, {0x7E,0x11,0x11,0x11,0x7E},
-    {0x7F,0x49,0x49,0x49,0x36}, {0x3E,0x41,0x41,0x41,0x22},
-    {0x7F,0x41,0x41,0x22,0x1C}, {0x7F,0x49,0x49,0x49,0x41},
-    {0x7F,0x09,0x09,0x01,0x01}, {0x3E,0x41,0x41,0x51,0x32},
-    {0x7F,0x08,0x08,0x08,0x7F}, {0x00,0x41,0x7F,0x41,0x00},
-    {0x20,0x40,0x41,0x3F,0x01}, {0x7F,0x08,0x14,0x22,0x41},
-    {0x7F,0x40,0x40,0x40,0x40}, {0x7F,0x02,0x04,0x02,0x7F},
-    {0x7F,0x04,0x08,0x10,0x7F}, {0x3E,0x41,0x41,0x41,0x3E},
-    {0x7F,0x09,0x09,0x09,0x06}, {0x3E,0x41,0x51,0x21,0x5E},
-    {0x7F,0x09,0x19,0x29,0x46}, {0x46,0x49,0x49,0x49,0x31},
-    {0x01,0x01,0x7F,0x01,0x01}, {0x3F,0x40,0x40,0x40,0x3F},
-    {0x1F,0x20,0x40,0x20,0x1F}, {0x7F,0x20,0x18,0x20,0x7F},
-    {0x63,0x14,0x08,0x14,0x63}, {0x03,0x04,0x78,0x04,0x03},
-    {0x61,0x51,0x49,0x45,0x43}, {0x00,0x00,0x7F,0x41,0x41},
-    {0x02,0x04,0x08,0x10,0x20}, {0x41,0x41,0x7F,0x00,0x00},
-    {0x04,0x02,0x01,0x02,0x04}, {0x80,0x80,0x80,0x80,0x80},
-    {0x00,0x01,0x02,0x04,0x00}, {0x20,0x54,0x54,0x54,0x78},
-    {0x7F,0x48,0x44,0x44,0x38}, {0x38,0x44,0x44,0x44,0x20},
-    {0x38,0x44,0x44,0x48,0x7F}, {0x38,0x54,0x54,0x54,0x18},
-    {0x08,0x7E,0x09,0x01,0x02}, {0x08,0x14,0x54,0x54,0x3C},
-    {0x7F,0x08,0x04,0x04,0x78}, {0x00,0x44,0x7D,0x40,0x00},
-    {0x20,0x40,0x44,0x3D,0x00}, {0x00,0x7F,0x10,0x28,0x44},
-    {0x00,0x41,0x7F,0x40,0x00}, {0x7C,0x04,0x18,0x04,0x78},
-    {0x7C,0x08,0x04,0x04,0x78}, {0x38,0x44,0x44,0x44,0x38},
-    {0x7C,0x14,0x14,0x14,0x08}, {0x08,0x14,0x14,0x18,0x7C},
-    {0x7C,0x08,0x04,0x04,0x08}, {0x48,0x54,0x54,0x54,0x20},
-    {0x04,0x3F,0x44,0x40,0x20}, {0x3C,0x40,0x40,0x20,0x7C},
-    {0x1C,0x20,0x40,0x20,0x1C}, {0x3C,0x40,0x30,0x40,0x3C},
-    {0x44,0x28,0x10,0x28,0x44}, {0x0C,0x50,0x50,0x50,0x3C},
-    {0x44,0x64,0x54,0x4C,0x44}, {0x00,0x08,0x36,0x41,0x00},
-    {0x00,0x00,0x77,0x00,0x00}, {0x00,0x41,0x36,0x08,0x00},
-    {0x02,0x01,0x02,0x04,0x02}, {0x3C,0x26,0x23,0x26,0x3C},
+ST7735_LCD_Drv_t ST7735_LCD_Driver = {
+    ST7735_Init,
+    ST7735_DeInit,
+    ST7735_ReadID,
+    ST7735_DisplayOn,
+    ST7735_DisplayOff,
+    ST7735_SetBrightness,
+    ST7735_GetBrightness,
+    ST7735_SetOrientation,
+    ST7735_GetOrientation,
+    ST7735_SetCursor,
+    ST7735_DrawBitmap,
+    ST7735_FillRGBRect,
+    ST7735_DrawHLine,
+    ST7735_DrawVLine,
+    ST7735_FillRect,
+    ST7735_GetPixel,
+    ST7735_SetPixel,
+    ST7735_GetXSize,
+    ST7735_GetYSize,
 };
 
-static void ST7735_WriteCmdData(uint8_t cmd, const uint8_t *data, uint16_t len)
-{
-    pIO->write_cmd(cmd);
-    if (len && data)
-        pIO->write_data(data, len);
-}
+static const uint32_t OrientationTab[4][2] = {
+    {0x40U, 0xC0U},
+    {0x80U, 0x00U},
+    {0x20U, 0x60U},
+    {0xE0U, 0xA0U}
+};
 
-void ST7735_Init(ST7735_IO_t *io)
-{
-    static const uint8_t init_cmds[] = {
-        0x01, 0x80, 150,
-        0x11, 0x80, 255,
-        0xB1, 3, 0x01, 0x2C, 0x2D,
-        0xB2, 3, 0x01, 0x2C, 0x2D,
-        0xB3, 6, 0x01, 0x2C, 0x2D, 0x01, 0x2C, 0x2D,
-        0xB4, 1, 0x07,
-        0xC0, 3, 0xA2, 0x02, 0x84,
-        0xC1, 1, 0xC5,
-        0xC2, 2, 0x0A, 0x00,
-        0xC3, 2, 0x8A, 0x2A,
-        0xC4, 2, 0x8A, 0xEE,
-        0xC5, 1, 0x0E,
-        0x20, 0x00,
-        0x36, 1, 0xC0,
-        0x3A, 1, 0x05,
-        0x2A, 4, 0x00, 0x02, 0x00, 0x81,
-        0x2B, 4, 0x00, 0x01, 0x00, 0xA0,
-        0x21, 0x00,
-        0x13, 0x00,
-        0x11, 0x80, 255,
-        0x29, 0x80, 255,
-    };
+static void ST7735_GetPanelOffset(ST7735_Object_t *pObj, uint32_t *x_ofs, uint32_t *y_ofs) {
+    *x_ofs = 0;
+    *y_ofs = 0;
 
-    pIO = io;
-
-    for (uint16_t i = 0; i < sizeof(init_cmds);)
-    {
-        uint8_t cmd = init_cmds[i++];
-        uint8_t len = init_cmds[i++];
-        uint8_t delay_ms = (len & 0x80) ? init_cmds[i] : 0;
-        len &= 0x7F;
-
-        pIO->write_cmd(cmd);
-        if (len > 0)
-            pIO->write_data(&init_cmds[i], len);
-
-        i += len;
-
-        if (delay_ms)
-            pIO->delay_ms(delay_ms);
-    }
-
-    ST7735_Fill(0x0000);
-}
-
-void ST7735_SetWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
-{
-    uint8_t col[4] = { 0, x0 + 2, 0, x1 + 2 };
-    uint8_t row[4] = { 0, y0 + 1, 0, y1 + 1 };
-
-    ST7735_WriteCmdData(0x2A, col, 4);
-    ST7735_WriteCmdData(0x2B, row, 4);
-    pIO->write_cmd(0x2C);
-}
-
-void ST7735_DrawPixel(uint8_t x, uint8_t y, uint16_t color)
-{
-    if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
-
-    ST7735_SetWindow(x, y, x, y);
-    uint8_t buf[2] = { color >> 8, color & 0xFF };
-    pIO->write_data(buf, 2);
-}
-
-void ST7735_Fill(uint16_t color)
-{
-    uint8_t hi = color >> 8;
-    uint8_t lo = color & 0xFF;
-
-    ST7735_SetWindow(0, 0, ST7735_WIDTH - 1, ST7735_HEIGHT - 1);
-
-    for (uint32_t i = 0; i < (uint32_t)ST7735_WIDTH * ST7735_HEIGHT; i++)
-    {
-        pIO->write_data(&hi, 1);
-        pIO->write_data(&lo, 1);
-    }
-}
-
-void ST7735_FillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color)
-{
-    if (x >= ST7735_WIDTH || y >= ST7735_HEIGHT) return;
-    if (x + w > ST7735_WIDTH)  w = ST7735_WIDTH - x;
-    if (y + h > ST7735_HEIGHT) h = ST7735_HEIGHT - y;
-
-    uint8_t hi = color >> 8;
-    uint8_t lo = color & 0xFF;
-
-    ST7735_SetWindow(x, y, x + w - 1, y + h - 1);
-
-    for (uint32_t i = 0; i < (uint32_t)w * h; i++)
-    {
-        pIO->write_data(&hi, 1);
-        pIO->write_data(&lo, 1);
-    }
-}
-
-void ST7735_DrawRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color)
-{
-    ST7735_DrawLine(x, y, x + w - 1, y, color);
-    ST7735_DrawLine(x, y + h - 1, x + w - 1, y + h - 1, color);
-    ST7735_DrawLine(x, y, x, y + h - 1, color);
-    ST7735_DrawLine(x + w - 1, y, x + w - 1, y + h - 1, color);
-}
-
-void ST7735_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint16_t color)
-{
-    int16_t dx, dy, sx, sy, err, e2;
-
-    dx = (x1 < x2) ? (x2 - x1) : (x1 - x2);
-    dy = (y1 < y2) ? (y2 - y1) : (y1 - y2);
-    sx = (x1 < x2) ? 1 : -1;
-    sy = (y1 < y2) ? 1 : -1;
-    err = dx - dy;
-
-    while (1)
-    {
-        ST7735_DrawPixel(x1, y1, color);
-        if (x1 == x2 && y1 == y2) break;
-        e2 = 2 * err;
-        if (e2 > -dy) { err -= dy; x1 += sx; }
-        if (e2 < dx) { err += dx; y1 += sy; }
-    }
-}
-
-void ST7735_DrawCircle(uint8_t x0, uint8_t y0, uint8_t r, uint16_t color)
-{
-    int16_t f = 1 - r;
-    int16_t ddF_x = 1;
-    int16_t ddF_y = -2 * r;
-    int16_t x = 0;
-    int16_t y = r;
-
-    ST7735_DrawPixel(x0, y0 + r, color);
-    ST7735_DrawPixel(x0, y0 - r, color);
-    ST7735_DrawPixel(x0 + r, y0, color);
-    ST7735_DrawPixel(x0 - r, y0, color);
-
-    while (x < y)
-    {
-        if (f >= 0)
-        {
-            y--;
-            ddF_y += 2;
-            f += ddF_y;
-        }
-        x++;
-        ddF_x += 2;
-        f += ddF_x;
-
-        ST7735_DrawPixel(x0 + x, y0 + y, color);
-        ST7735_DrawPixel(x0 - x, y0 + y, color);
-        ST7735_DrawPixel(x0 + x, y0 - y, color);
-        ST7735_DrawPixel(x0 - x, y0 - y, color);
-        ST7735_DrawPixel(x0 + y, y0 + x, color);
-        ST7735_DrawPixel(x0 - y, y0 + x, color);
-        ST7735_DrawPixel(x0 + y, y0 - x, color);
-        ST7735_DrawPixel(x0 - y, y0 - x, color);
-    }
-}
-
-void ST7735_FillCircle(uint8_t x0, uint8_t y0, uint8_t r, uint16_t color)
-{
-    int16_t f = 1 - r;
-    int16_t ddF_x = 1;
-    int16_t ddF_y = -2 * r;
-    int16_t x = 0;
-    int16_t y = r;
-
-    for (int16_t i = y0 - r; i <= y0 + r; i++)
-        ST7735_DrawPixel(x0, i, color);
-
-    while (x < y)
-    {
-        if (f >= 0)
-        {
-            y--;
-            ddF_y += 2;
-            f += ddF_y;
-        }
-        x++;
-        ddF_x += 2;
-        f += ddF_x;
-
-        for (int16_t i = y0 - y; i <= y0 + y; i++)
-        {
-            ST7735_DrawPixel(x0 + x, i, color);
-            ST7735_DrawPixel(x0 - x, i, color);
-        }
-        for (int16_t i = y0 - x; i <= y0 + x; i++)
-        {
-            ST7735_DrawPixel(x0 + y, i, color);
-            ST7735_DrawPixel(x0 - y, i, color);
-        }
-    }
-}
-
-void ST7735_ShowChar(uint8_t x, uint8_t y, char ch, uint16_t color, uint16_t bg, uint8_t size)
-{
-    if (ch < ' ' || ch > '~')
-        ch = ' ';
-
-    uint8_t idx = ch - ' ';
-
-    for (uint8_t i = 0; i < 5; i++)
-    {
-        uint8_t data = Font_5x7[idx][i];
-        for (uint8_t j = 0; j < 8; j++)
-        {
-            if (data & (1 << j))
-            {
-                if (size == 1)
-                    ST7735_DrawPixel(x + i, y + j, color);
-                else
-                    ST7735_FillRect(x + i * size, y + j * size, size, size, color);
+    if (pObj->Config.Type == ST7735_0_9_inch_screen) {
+        if (pObj->Config.Panel == HannStar_Panel) {
+            if (pObj->Config.Orientation <= ST7735_ORIENTATION_PORTRAIT_ROT180) {
+                *x_ofs = 26;
+                *y_ofs = 1;
+            } else {
+                *x_ofs = 1;
+                *y_ofs = 26;
             }
-            else if (bg != color)
-            {
-                if (size == 1)
-                    ST7735_DrawPixel(x + i, y + j, bg);
-                else
-                    ST7735_FillRect(x + i * size, y + j * size, size, size, bg);
+        } else {
+            if (pObj->Config.Orientation <= ST7735_ORIENTATION_PORTRAIT_ROT180) {
+                *x_ofs = 24;
+                *y_ofs = 0;
+            } else {
+                *x_ofs = 1;
+                *y_ofs = 24;
             }
         }
-    }
-
-    if (size == 1)
-    {
-        for (uint8_t j = 0; j < 8; j++)
-            ST7735_DrawPixel(x + 5, y + j, bg);
-    }
-    else
-    {
-        ST7735_FillRect(x + 5 * size, y, size, 8 * size, bg);
+    } else if (pObj->Config.Type == ST7735_1_8a_inch_screen && pObj->Config.Panel == BOE_Panel) {
+        if (pObj->Config.Orientation <= ST7735_ORIENTATION_PORTRAIT_ROT180) {
+            *x_ofs = 2;
+            *y_ofs = 1;
+        } else {
+            *x_ofs = 1;
+            *y_ofs = 2;
+        }
     }
 }
 
-void ST7735_ShowString(uint8_t x, uint8_t y, const char *str, uint16_t color, uint16_t bg, uint8_t size)
-{
-    while (*str)
-    {
-        if (x > ST7735_WIDTH - (6 * size))
-        {
-            x = 0;
-            y += (size == 1) ? 8 : (8 * size);
-        }
-        if (y > ST7735_HEIGHT - (8 * size))
-            return;
-
-        ST7735_ShowChar(x, y, *str, color, bg, size);
-        x += (size == 1) ? 6 : (6 * size);
-        str++;
-    }
+static uint8_t ST7735_GetMADCTL(ST7735_Object_t *pObj, uint8_t idx) {
+    uint8_t rgb = (pObj->Config.Panel == HannStar_Panel) ? LCD_BGR : LCD_RGB;
+    return (uint8_t)OrientationTab[pObj->Config.Orientation][idx] | rgb;
 }
 
-static void ST7735_ReverseStr(char *str, uint8_t len)
-{
-    for (uint8_t i = 0; i < len / 2; i++)
-    {
-        char tmp = str[i];
-        str[i] = str[len - 1 - i];
-        str[len - 1 - i] = tmp;
-    }
+static int32_t ST7735_SetDisplayWindow(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Width, uint32_t Height);
+static int32_t ST7735_ReadRegWrap(void *Handle, uint8_t Reg, uint8_t* pData);
+static int32_t ST7735_WriteRegWrap(void *Handle, uint8_t Reg, uint8_t *pData, uint32_t Length);
+static int32_t ST7735_SendDataWrap(void *Handle, const uint8_t *pData, uint32_t Length);
+static int32_t ST7735_RecvDataWrap(void *Handle, uint8_t *pData, uint32_t Length);
+static int32_t ST7735_IO_Delay(ST7735_Object_t *pObj, uint32_t Delay);
+
+int32_t ST7735_RegisterBusIO(ST7735_Object_t *pObj, ST7735_IO_t *pIO) {
+    if (!pObj) return ST7735_ERROR;
+
+    pObj->IO.Init      = pIO->Init;
+    pObj->IO.DeInit    = pIO->DeInit;
+    pObj->IO.WriteReg  = pIO->WriteReg;
+    pObj->IO.ReadReg   = pIO->ReadReg;
+    pObj->IO.SendData  = pIO->SendData;
+    pObj->IO.RecvData  = pIO->RecvData;
+    pObj->IO.GetTick   = pIO->GetTick;
+
+    pObj->Ctx.ReadReg   = ST7735_ReadRegWrap;
+    pObj->Ctx.WriteReg  = ST7735_WriteRegWrap;
+    pObj->Ctx.SendData  = ST7735_SendDataWrap;
+    pObj->Ctx.RecvData  = ST7735_RecvDataWrap;
+    pObj->Ctx.handle    = pObj;
+
+    return (pObj->IO.Init) ? pObj->IO.Init() : ST7735_ERROR;
 }
 
-void ST7735_ShowNum(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint16_t color, uint16_t bg, uint8_t size)
-{
-    char buf[12];
-    uint8_t i = 0;
+int32_t ST7735_Init(ST7735_Object_t *pObj, uint32_t ColorCoding, ST7735_Ctx_t *pConfig) {
+    uint8_t tmp;
+    int32_t ret;
 
-    if (num == 0)
-    {
-        buf[i++] = '0';
+    if (!pObj || !pConfig) return ST7735_ERROR;
+
+    pObj->Config = *pConfig;
+
+    tmp = 0x00U;
+    ret = st7735_write_reg(&pObj->Ctx, ST7735_SW_RESET, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 120);
+
+    tmp = 0x00U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_SW_RESET, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 120);
+
+    tmp = 0x00U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_SLEEP_OUT, &tmp, 1);
+
+    tmp = 0x01U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_FRAME_RATE_CTRL1, &tmp, 0);
+    tmp = 0x2CU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x2DU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x01U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_FRAME_RATE_CTRL2, &tmp, 1);
+    tmp = 0x2CU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x2DU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x01U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_FRAME_RATE_CTRL3, &tmp, 1);
+    tmp = 0x2CU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x2DU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x01U;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x2CU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x2DU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x07U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_FRAME_INVERSION_CTRL, &tmp, 1);
+
+    tmp = 0xA2U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PWR_CTRL1, &tmp, 1);
+    tmp = 0x02U;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = 0x84U;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0xC5U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PWR_CTRL2, &tmp, 1);
+
+    tmp = 0x0AU;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PWR_CTRL3, &tmp, 1);
+    tmp = 0x00U;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x8AU;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PWR_CTRL4, &tmp, 1);
+    tmp = 0x2AU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x8AU;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PWR_CTRL5, &tmp, 1);
+    tmp = 0xEEU;
+    ret += st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    tmp = 0x0EU;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_VCOMH_VCOML_CTRL1, &tmp, 1);
+
+    ret += st7735_write_reg(&pObj->Ctx,
+        (pConfig->Panel == HannStar_Panel) ? ST7735_DISPLAY_INVERSION_ON : ST7735_DISPLAY_INVERSION_OFF,
+        &tmp, 0);
+
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_COLOR_MODE, (uint8_t*)&ColorCoding, 1);
+
+    const uint8_t pv_gamma[] = {0x02, 0x1C, 0x07, 0x12, 0x37, 0x32, 0x29, 0x2D,
+                                0x29, 0x25, 0x2B, 0x39, 0x00, 0x01, 0x03, 0x10};
+    tmp = pv_gamma[0];
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_PV_GAMMA_CTRL, &tmp, 1);
+    for (uint8_t i = 1; i < 16; i++) {
+        ret += st7735_send_data(&pObj->Ctx, &pv_gamma[i], 1);
     }
-    else
-    {
-        while (num > 0 && i < sizeof(buf) - 1)
-        {
-            buf[i++] = '0' + (num % 10);
-            num /= 10;
-        }
+
+    const uint8_t nv_gamma[] = {0x03, 0x1D, 0x07, 0x06, 0x2E, 0x2C, 0x29, 0x2D,
+                                0x2E, 0x2E, 0x37, 0x3F, 0x00, 0x00, 0x02, 0x10};
+    tmp = nv_gamma[0];
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_NV_GAMMA_CTRL, &tmp, 1);
+    for (uint8_t i = 1; i < 16; i++) {
+        ret += st7735_send_data(&pObj->Ctx, &nv_gamma[i], 1);
     }
 
-    while (i < len)
-        buf[i++] = ' ';
+    tmp = 0x00U;
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_NORMAL_DISPLAY_OFF, &tmp, 1);
+    ret += st7735_write_reg(&pObj->Ctx, ST7735_DISPLAY_ON, &tmp, 1);
 
-    ST7735_ReverseStr(buf, i);
-    buf[i] = '\0';
+    ret += ST7735_SetOrientation(pObj, pConfig);
 
-    ST7735_ShowString(x, y, buf, color, bg, size);
+    pObj->IsInitialized = (ret == ST7735_OK) ? 1 : 0;
+    return (ret == ST7735_OK) ? ST7735_OK : ST7735_ERROR;
 }
 
-void ST7735_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t decLen, uint16_t color, uint16_t bg, uint8_t size)
-{
-    char buf[16];
-    uint8_t pos = 0;
-    uint8_t i;
+int32_t ST7735_DeInit(ST7735_Object_t *pObj) {
+    (void)pObj;
+    return ST7735_OK;
+}
 
-    if (num < 0)
-    {
-        buf[pos++] = '-';
-        num = -num;
-    }
+int32_t ST7735_ReadID(ST7735_Object_t *pObj, uint32_t *Id) {
+    uint8_t tmp[3];
 
-    uint32_t intPart = (uint32_t)num;
+    if (st7735_read_reg(&pObj->Ctx, ST7735_READ_ID1, &tmp[0]) != ST7735_OK) return ST7735_ERROR;
+    if (st7735_read_reg(&pObj->Ctx, ST7735_READ_ID2, &tmp[1]) != ST7735_OK) return ST7735_ERROR;
+    if (st7735_read_reg(&pObj->Ctx, ST7735_READ_ID3, &tmp[2]) != ST7735_OK) return ST7735_ERROR;
 
-    char tmp[12];
-    uint8_t tlen = 0;
-    if (intPart == 0)
-    {
-        tmp[tlen++] = '0';
-    }
-    else
-    {
-        while (intPart > 0)
-        {
-            tmp[tlen++] = '0' + (intPart % 10);
-            intPart /= 10;
+    *Id = ((uint32_t)tmp[2]) | ((uint32_t)tmp[1] << 8) | ((uint32_t)tmp[0] << 16);
+    return ST7735_OK;
+}
+
+int32_t ST7735_DisplayOn(ST7735_Object_t *pObj) {
+    uint8_t tmp = 0;
+
+    st7735_write_reg(&pObj->Ctx, ST7735_NORMAL_DISPLAY_OFF, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 10);
+    st7735_write_reg(&pObj->Ctx, ST7735_DISPLAY_ON, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 10);
+
+    tmp = ST7735_GetMADCTL(pObj, 1);
+    st7735_write_reg(&pObj->Ctx, ST7735_MADCTL, &tmp, 1);
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_DisplayOff(ST7735_Object_t *pObj) {
+    uint8_t tmp = 0;
+
+    st7735_write_reg(&pObj->Ctx, ST7735_NORMAL_DISPLAY_OFF, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 10);
+    st7735_write_reg(&pObj->Ctx, ST7735_DISPLAY_OFF, &tmp, 0);
+    (void)ST7735_IO_Delay(pObj, 10);
+
+    tmp = ST7735_GetMADCTL(pObj, 1);
+    st7735_write_reg(&pObj->Ctx, ST7735_MADCTL, &tmp, 1);
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_SetBrightness(ST7735_Object_t *pObj, uint32_t Brightness) {
+    (void)pObj;
+    (void)Brightness;
+    return ST7735_ERROR;
+}
+
+int32_t ST7735_GetBrightness(ST7735_Object_t *pObj, uint32_t *Brightness) {
+    (void)pObj;
+    (void)Brightness;
+    return ST7735_ERROR;
+}
+
+int32_t ST7735_SetOrientation(ST7735_Object_t *pObj, ST7735_Ctx_t *pConfig) {
+    if (!pObj || !pConfig) return ST7735_ERROR;
+
+    pObj->Config.Orientation = pConfig->Orientation;
+    pObj->Config.Panel = pConfig->Panel;
+    pObj->Config.Type = pConfig->Type;
+
+    if (pConfig->Orientation <= ST7735_ORIENTATION_PORTRAIT_ROT180) {
+        if (pConfig->Type == ST7735_0_9_inch_screen) {
+            pObj->Config.Width  = ST7735_0_9_WIDTH;
+            pObj->Config.Height = ST7735_0_9_HEIGHT;
+        } else {
+            pObj->Config.Width  = ST7735_1_8_WIDTH;
+            pObj->Config.Height = ST7735_1_8_HEIGHT;
+        }
+    } else {
+        if (pConfig->Type == ST7735_0_9_inch_screen) {
+            pObj->Config.Width  = ST7735_0_9_HEIGHT;
+            pObj->Config.Height = ST7735_0_9_WIDTH;
+        } else {
+            pObj->Config.Width  = ST7735_1_8_HEIGHT;
+            pObj->Config.Height = ST7735_1_8_WIDTH;
         }
     }
-    while (tlen < intLen)
-        tmp[tlen++] = ' ';
 
-    for (i = 0; i < tlen; i++)
-        buf[pos++] = tmp[tlen - 1 - i];
+    ST7735_SetDisplayWindow(pObj, 0U, 0U, pObj->Config.Width, pObj->Config.Height);
 
-    if (decLen > 0)
-    {
-        buf[pos++] = '.';
+    uint8_t tmp = ST7735_GetMADCTL(pObj, 1);
+    st7735_write_reg(&pObj->Ctx, ST7735_MADCTL, &tmp, 1);
 
-        float decPartF = num - (float)((uint32_t)num);
-        if (decPartF < 0) decPartF = 0;
+    return ST7735_OK;
+}
 
-        uint32_t multiplier = 1;
-        for (i = 0; i < decLen; i++)
-            multiplier *= 10;
+int32_t ST7735_GetOrientation(ST7735_Object_t *pObj, uint32_t *Orientation) {
+    *Orientation = pObj->Config.Orientation;
+    return ST7735_OK;
+}
 
-        uint32_t decPart = (uint32_t)(decPartF * multiplier + 0.5f);
+int32_t ST7735_SetCursor(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos) {
+    uint8_t tmp;
+    uint32_t x_ofs, y_ofs;
 
-        for (i = 0; i < decLen; i++)
-        {
-            buf[pos + decLen - 1 - i] = '0' + (decPart % 10);
-            decPart /= 10;
-        }
-        pos += decLen;
+    ST7735_GetPanelOffset(pObj, &x_ofs, &y_ofs);
+    Xpos += x_ofs;
+    Ypos += y_ofs;
+
+    st7735_write_reg(&pObj->Ctx, ST7735_CASET, &tmp, 0);
+    tmp = (uint8_t)(Xpos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Xpos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    st7735_write_reg(&pObj->Ctx, ST7735_RASET, &tmp, 0);
+    tmp = (uint8_t)(Ypos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Ypos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    st7735_write_reg(&pObj->Ctx, ST7735_WRITE_RAM, &tmp, 0);
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_DrawBitmap(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint8_t *pBmp) {
+    uint32_t index, width, height, y_pos;
+    uint8_t pixel_val[2], tmp;
+    uint8_t *pbmp;
+    uint32_t counter = 0;
+
+    index = (uint32_t)pBmp[10] + ((uint32_t)pBmp[11] << 8) + ((uint32_t)pBmp[12] << 16) + ((uint32_t)pBmp[13] << 24);
+    width = (uint32_t)pBmp[18] + ((uint32_t)pBmp[19] << 8) + ((uint32_t)pBmp[20] << 16) + ((uint32_t)pBmp[21] << 24);
+    height = (uint32_t)pBmp[22] + ((uint32_t)pBmp[23] << 8) + ((uint32_t)pBmp[24] << 16) + ((uint32_t)pBmp[25] << 24);
+    index = (uint32_t)pBmp[2] + ((uint32_t)pBmp[3] << 8) + ((uint32_t)pBmp[4] << 16) + ((uint32_t)pBmp[5] << 24) - index;
+
+    pbmp = pBmp + index;
+    y_pos = pObj->Config.Height - Ypos - height;
+
+    if (ST7735_SetDisplayWindow(pObj, Xpos, y_pos, width, height) != ST7735_OK) {
+        return ST7735_ERROR;
     }
 
-    buf[pos] = '\0';
-    ST7735_ShowString(x, y, buf, color, bg, size);
+    tmp = ST7735_GetMADCTL(pObj, 0);
+    if (st7735_write_reg(&pObj->Ctx, ST7735_MADCTL, &tmp, 1) != ST7735_OK) {
+        return ST7735_ERROR;
+    }
+
+    if (ST7735_SetCursor(pObj, Xpos, y_pos) != ST7735_OK) {
+        return ST7735_ERROR;
+    }
+
+    do {
+        pixel_val[0] = *(pbmp + 1);
+        pixel_val[1] = *(pbmp);
+        if (st7735_send_data(&pObj->Ctx, pixel_val, 2U) != ST7735_OK) {
+            return ST7735_ERROR;
+        }
+        counter += 2U;
+        pbmp += 2;
+    } while (counter < index);
+
+    tmp = ST7735_GetMADCTL(pObj, 1);
+    if (st7735_write_reg(&pObj->Ctx, ST7735_MADCTL, &tmp, 1) != ST7735_OK) {
+        return ST7735_ERROR;
+    }
+
+    return ST7735_SetDisplayWindow(pObj, 0U, 0U, pObj->Config.Width, pObj->Config.Height);
+}
+
+int32_t ST7735_FillRGBRect(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint8_t *pData, uint32_t Width, uint32_t Height) {
+    uint8_t pdata[640];
+    uint8_t *rgb_data = pData;
+
+    if ((Xpos + Width) > pObj->Config.Width || (Ypos + Height) > pObj->Config.Height) {
+        return ST7735_ERROR;
+    }
+
+    for (uint32_t j = 0; j < Height; j++) {
+        if (ST7735_SetCursor(pObj, Xpos, Ypos + j) != ST7735_OK) {
+            return ST7735_ERROR;
+        }
+
+        for (uint32_t i = 0; i < Width; i++) {
+            pdata[2U * i] = (uint8_t)(*(rgb_data));
+            pdata[(2U * i) + 1U] = (uint8_t)(*(rgb_data + 1));
+            rgb_data += 2;
+        }
+
+        if (st7735_send_data(&pObj->Ctx, pdata, 2U * Width) != ST7735_OK) {
+            return ST7735_ERROR;
+        }
+    }
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_DrawHLine(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Length, uint32_t Color) {
+    uint8_t pdata[640];
+
+    if ((Xpos + Length) > pObj->Config.Width) {
+        return ST7735_ERROR;
+    }
+
+    if (ST7735_SetCursor(pObj, Xpos, Ypos) != ST7735_OK) {
+        return ST7735_ERROR;
+    }
+
+    for (uint32_t i = 0; i < Length; i++) {
+        pdata[2U * i] = (uint8_t)(Color >> 8);
+        pdata[(2U * i) + 1U] = (uint8_t)(Color);
+    }
+
+    return st7735_send_data(&pObj->Ctx, pdata, 2U * Length);
+}
+
+int32_t ST7735_DrawVLine(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Length, uint32_t Color) {
+    if ((Ypos + Length) > pObj->Config.Height) {
+        return ST7735_ERROR;
+    }
+
+    for (uint32_t counter = 0; counter < Length; counter++) {
+        if (ST7735_SetPixel(pObj, Xpos, Ypos + counter, Color) != ST7735_OK) {
+            return ST7735_ERROR;
+        }
+    }
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_FillRect(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Width, uint32_t Height, uint32_t Color) {
+    uint8_t tmp;
+    uint32_t x_ofs, y_ofs;
+    uint32_t total_pixels = Width * Height;
+    uint32_t remaining = total_pixels;
+    
+    uint8_t color_msb = (uint8_t)(Color >> 8);
+    uint8_t color_lsb = (uint8_t)(Color);
+
+    uint32_t buf_size = (Width * 2) > 512 ? 512 : (Width * 2);
+    uint8_t *pbuf = (uint8_t *)__builtin_alloca(buf_size);
+    
+    for (uint32_t i = 0; i < buf_size / 2; i++) {
+        pbuf[2*i] = color_msb;
+        pbuf[2*i + 1] = color_lsb;
+    }
+
+    ST7735_GetPanelOffset(pObj, &x_ofs, &y_ofs);
+    Xpos += x_ofs;
+    Ypos += y_ofs;
+
+    st7735_write_reg(&pObj->Ctx, ST7735_CASET, &tmp, 0);
+    tmp = (uint8_t)(Xpos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Xpos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Xpos + Width - 1U) >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Xpos + Width - 1U) & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    st7735_write_reg(&pObj->Ctx, ST7735_RASET, &tmp, 0);
+    tmp = (uint8_t)(Ypos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Ypos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Ypos + Height - 1U) >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Ypos + Height - 1U) & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    st7735_write_reg(&pObj->Ctx, ST7735_WRITE_RAM, &tmp, 0);
+
+    uint32_t pixels_per_chunk = buf_size / 2;
+    while (remaining > 0) {
+        uint32_t send_pixels = (remaining > pixels_per_chunk) ? pixels_per_chunk : remaining;
+        st7735_send_data(&pObj->Ctx, pbuf, send_pixels * 2);
+        remaining -= send_pixels;
+    }
+
+    return ST7735_OK;
+}
+
+int32_t ST7735_SetPixel(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Color) {
+    uint16_t color = (uint16_t)((uint16_t)Color << 8) | (uint16_t)((uint16_t)(Color >> 8));
+
+    if (Xpos >= pObj->Config.Width || Ypos >= pObj->Config.Height) {
+        return ST7735_ERROR;
+    }
+
+    if (ST7735_SetCursor(pObj, Xpos, Ypos) != ST7735_OK) {
+        return ST7735_ERROR;
+    }
+
+    return st7735_send_data(&pObj->Ctx, (uint8_t*)&color, 2);
+}
+
+int32_t ST7735_GetPixel(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t *Color) {
+    uint8_t pixel_lsb, pixel_msb, tmp;
+
+    ST7735_SetCursor(pObj, Xpos, Ypos);
+    st7735_read_reg(&pObj->Ctx, ST7735_READ_RAM, &tmp);
+    st7735_recv_data(&pObj->Ctx, &tmp, 1);
+    st7735_recv_data(&pObj->Ctx, &pixel_lsb, 1);
+    st7735_recv_data(&pObj->Ctx, &pixel_msb, 1);
+
+    *Color = ((uint32_t)(pixel_lsb)) + ((uint32_t)(pixel_msb) << 8);
+    return ST7735_OK;
+}
+
+int32_t ST7735_GetXSize(ST7735_Object_t *pObj, uint32_t *XSize) {
+    *XSize = pObj->Config.Width;
+    return ST7735_OK;
+}
+
+int32_t ST7735_GetYSize(ST7735_Object_t *pObj, uint32_t *YSize) {
+    *YSize = pObj->Config.Height;
+    return ST7735_OK;
+}
+
+static int32_t ST7735_SetDisplayWindow(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Width, uint32_t Height) {
+    uint8_t tmp;
+    uint32_t x_ofs, y_ofs;
+
+    ST7735_GetPanelOffset(pObj, &x_ofs, &y_ofs);
+    Xpos += x_ofs;
+    Ypos += y_ofs;
+
+    st7735_write_reg(&pObj->Ctx, ST7735_CASET, &tmp, 0);
+    tmp = (uint8_t)(Xpos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Xpos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Xpos + Width - 1U) >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Xpos + Width - 1U) & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    st7735_write_reg(&pObj->Ctx, ST7735_RASET, &tmp, 0);
+    tmp = (uint8_t)(Ypos >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)(Ypos & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Ypos + Height - 1U) >> 8U);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+    tmp = (uint8_t)((Ypos + Height - 1U) & 0xFFU);
+    st7735_send_data(&pObj->Ctx, &tmp, 1);
+
+    return ST7735_OK;
+}
+
+static int32_t ST7735_ReadRegWrap(void *Handle, uint8_t Reg, uint8_t* pData) {
+    ST7735_Object_t *pObj = (ST7735_Object_t *)Handle;
+    return pObj->IO.ReadReg(Reg, pData);
+}
+
+static int32_t ST7735_WriteRegWrap(void *Handle, uint8_t Reg, uint8_t *pData, uint32_t Length) {
+    ST7735_Object_t *pObj = (ST7735_Object_t *)Handle;
+    return pObj->IO.WriteReg(Reg, pData, Length);
+}
+
+static int32_t ST7735_SendDataWrap(void *Handle, const uint8_t *pData, uint32_t Length) {
+    ST7735_Object_t *pObj = (ST7735_Object_t *)Handle;
+    return pObj->IO.SendData((uint8_t *)pData, Length);
+}
+
+static int32_t ST7735_RecvDataWrap(void *Handle, uint8_t *pData, uint32_t Length) {
+    ST7735_Object_t *pObj = (ST7735_Object_t *)Handle;
+    return pObj->IO.RecvData(pData, Length);
+}
+
+static int32_t ST7735_IO_Delay(ST7735_Object_t *pObj, uint32_t Delay) {
+    uint32_t tickstart = pObj->IO.GetTick();
+    while ((pObj->IO.GetTick() - tickstart) < Delay);
+    return ST7735_OK;
 }

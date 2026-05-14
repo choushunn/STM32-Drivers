@@ -1,54 +1,120 @@
-#ifndef __ST7735_H
-#define __ST7735_H
+#ifndef ST7735_H
+#define ST7735_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
+#include "st7735_reg.h"
+#include <stddef.h>
 
-/*
- * 1.8" TFT LCD ST7735 驱动
- * 分辨率 128×160, 16-bit RGB565 色彩, SPI 接口
- * 无帧缓冲, 直接操作显示控制器 GRAM
- */
+#define ST7735_OK                (0)
+#define ST7735_ERROR             (-1)
 
-#define ST7735_WIDTH           128
-#define ST7735_HEIGHT          160
+#define ST7735_ID               0x5CU
 
-#define ST7735_BLACK           0x0000
-#define ST7735_WHITE           0xFFFF
-#define ST7735_RED             0xF800
-#define ST7735_GREEN           0x07E0
-#define ST7735_BLUE            0x001F
-#define ST7735_YELLOW          0xFFE0
-#define ST7735_CYAN            0x07FF
-#define ST7735_MAGENTA         0xF81F
-#define ST7735_GRAY            0x8410
-#define ST7735_ORANGE          0xFD20
+#define ST7735_1_8_WIDTH        128U
+#define ST7735_1_8_HEIGHT       160U
+#define ST7735_0_9_WIDTH         80U
+#define ST7735_0_9_HEIGHT       160U
 
-#define ST7735_OK              0
-#define ST7735_ERR_NULL       (-1)
+#define ST7735_ORIENTATION_PORTRAIT         0x00U
+#define ST7735_ORIENTATION_PORTRAIT_ROT180  0x01U
+#define ST7735_ORIENTATION_LANDSCAPE        0x02U
+#define ST7735_ORIENTATION_LANDSCAPE_ROT180 0x03U
+
+#define ST7735_FORMAT_RBG444                0x03U
+#define ST7735_FORMAT_RBG565                0x05U
+#define ST7735_FORMAT_RBG666                0x06U
+#define ST7735_FORMAT_DEFAULT               ST7735_FORMAT_RBG565
+
+#define ST7735_1_8_inch_screen              0x00U
+#define ST7735_0_9_inch_screen              0x01U
+#define ST7735_1_8a_inch_screen             0x02U
+
+#define HannStar_Panel                      0x00U
+#define BOE_Panel                           0x01U
+
+#define LCD_RGB                             0x00U
+#define LCD_BGR                             0x08U
 
 typedef struct {
-    void (*write_cmd)(uint8_t cmd);
-    void (*write_data)(const uint8_t *data, uint16_t len);
-    void (*delay_ms)(uint32_t ms);
+    uint32_t Width;
+    uint32_t Height;
+    uint32_t Orientation;
+    uint8_t Panel;
+    uint8_t Type;
+} ST7735_Ctx_t;
+
+typedef int32_t (*ST7735_Init_Func)(void);
+typedef int32_t (*ST7735_DeInit_Func)(void);
+typedef int32_t (*ST7735_GetTick_Func)(void);
+typedef int32_t (*ST7735_WriteReg_Func)(uint8_t, uint8_t*, uint32_t);
+typedef int32_t (*ST7735_ReadReg_Func)(uint8_t, uint8_t*);
+typedef int32_t (*ST7735_SendData_Func)(const uint8_t*, uint32_t);
+typedef int32_t (*ST7735_RecvData_Func)(uint8_t*, uint32_t);
+
+typedef struct {
+    ST7735_Init_Func       Init;
+    ST7735_DeInit_Func     DeInit;
+    ST7735_WriteReg_Func   WriteReg;
+    ST7735_ReadReg_Func    ReadReg;
+    ST7735_SendData_Func   SendData;
+    ST7735_RecvData_Func   RecvData;
+    ST7735_GetTick_Func    GetTick;
 } ST7735_IO_t;
 
-void ST7735_Init(ST7735_IO_t *io);
-void ST7735_SetWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
-void ST7735_DrawPixel(uint8_t x, uint8_t y, uint16_t color);
-void ST7735_Fill(uint16_t color);
-void ST7735_FillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color);
-void ST7735_DrawRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color);
-void ST7735_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint16_t color);
-void ST7735_DrawCircle(uint8_t x0, uint8_t y0, uint8_t r, uint16_t color);
-void ST7735_FillCircle(uint8_t x0, uint8_t y0, uint8_t r, uint16_t color);
-void ST7735_ShowChar(uint8_t x, uint8_t y, char ch, uint16_t color, uint16_t bg, uint8_t size);
-void ST7735_ShowString(uint8_t x, uint8_t y, const char *str, uint16_t color, uint16_t bg, uint8_t size);
-void ST7735_ShowNum(uint8_t x, uint8_t y, uint32_t num, uint8_t len, uint16_t color, uint16_t bg, uint8_t size);
-void ST7735_ShowFloat(uint8_t x, uint8_t y, float num, uint8_t intLen, uint8_t decLen, uint16_t color, uint16_t bg, uint8_t size);
+typedef struct {
+    ST7735_IO_t        IO;
+    st7735_ctx_t       Ctx;
+    ST7735_Ctx_t       Config;
+    uint8_t            IsInitialized;
+} ST7735_Object_t;
+
+typedef struct {
+    int32_t (*Init)(ST7735_Object_t*, uint32_t, ST7735_Ctx_t*);
+    int32_t (*DeInit)(ST7735_Object_t*);
+    int32_t (*ReadID)(ST7735_Object_t*, uint32_t*);
+    int32_t (*DisplayOn)(ST7735_Object_t*);
+    int32_t (*DisplayOff)(ST7735_Object_t*);
+    int32_t (*SetBrightness)(ST7735_Object_t*, uint32_t);
+    int32_t (*GetBrightness)(ST7735_Object_t*, uint32_t*);
+    int32_t (*SetOrientation)(ST7735_Object_t*, ST7735_Ctx_t*);
+    int32_t (*GetOrientation)(ST7735_Object_t*, uint32_t*);
+    int32_t (*SetCursor)(ST7735_Object_t*, uint32_t, uint32_t);
+    int32_t (*DrawBitmap)(ST7735_Object_t*, uint32_t, uint32_t, uint8_t*);
+    int32_t (*FillRGBRect)(ST7735_Object_t*, uint32_t, uint32_t, uint8_t*, uint32_t, uint32_t);
+    int32_t (*DrawHLine)(ST7735_Object_t*, uint32_t, uint32_t, uint32_t, uint32_t);
+    int32_t (*DrawVLine)(ST7735_Object_t*, uint32_t, uint32_t, uint32_t, uint32_t);
+    int32_t (*FillRect)(ST7735_Object_t*, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+    int32_t (*GetPixel)(ST7735_Object_t*, uint32_t, uint32_t, uint32_t*);
+    int32_t (*SetPixel)(ST7735_Object_t*, uint32_t, uint32_t, uint32_t);
+    int32_t (*GetXSize)(ST7735_Object_t*, uint32_t*);
+    int32_t (*GetYSize)(ST7735_Object_t*, uint32_t*);
+} ST7735_LCD_Drv_t;
+
+int32_t ST7735_RegisterBusIO(ST7735_Object_t *pObj, ST7735_IO_t *pIO);
+int32_t ST7735_Init(ST7735_Object_t *pObj, uint32_t ColorCoding, ST7735_Ctx_t *pConfig);
+int32_t ST7735_DeInit(ST7735_Object_t *pObj);
+int32_t ST7735_ReadID(ST7735_Object_t *pObj, uint32_t *Id);
+int32_t ST7735_DisplayOn(ST7735_Object_t *pObj);
+int32_t ST7735_DisplayOff(ST7735_Object_t *pObj);
+int32_t ST7735_SetBrightness(ST7735_Object_t *pObj, uint32_t Brightness);
+int32_t ST7735_GetBrightness(ST7735_Object_t *pObj, uint32_t *Brightness);
+int32_t ST7735_SetOrientation(ST7735_Object_t *pObj, ST7735_Ctx_t *pConfig);
+int32_t ST7735_GetOrientation(ST7735_Object_t *pObj, uint32_t *Orientation);
+int32_t ST7735_SetCursor(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos);
+int32_t ST7735_DrawBitmap(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint8_t *pBmp);
+int32_t ST7735_FillRGBRect(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint8_t *pData, uint32_t Width, uint32_t Height);
+int32_t ST7735_DrawHLine(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Length, uint32_t Color);
+int32_t ST7735_DrawVLine(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Length, uint32_t Color);
+int32_t ST7735_FillRect(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Width, uint32_t Height, uint32_t Color);
+int32_t ST7735_SetPixel(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t Color);
+int32_t ST7735_GetPixel(ST7735_Object_t *pObj, uint32_t Xpos, uint32_t Ypos, uint32_t *Color);
+int32_t ST7735_GetXSize(ST7735_Object_t *pObj, uint32_t *XSize);
+int32_t ST7735_GetYSize(ST7735_Object_t *pObj, uint32_t *YSize);
+
+extern ST7735_LCD_Drv_t ST7735_LCD_Driver;
 
 #ifdef __cplusplus
 }
